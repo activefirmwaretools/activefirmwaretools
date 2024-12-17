@@ -1,0 +1,61 @@
+// Protocol Definition File for the TMP117 Temperature Sensor
+
+[Protocol]
+name = TMP117_I2C
+bytewise
+[Packet]
+[Start]
+type = event
+event = 1 // Start bit
+[End]
+type = event
+event = 2 // Stop Bit
+[Decode]
+
+[Fields]
+
+// Write then Read Registers
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=0h.L, [1], dev.7m=48h.h, RW.1=1.L, temperature.Nm.d*7.8125$mC
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=1h.L, [1], dev.7m=48h.h, RW.1=1.L, configuration.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=2h.L, [1], dev.7m=48h.h, RW.1=1.L, Temperature_high_limit.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=3h.L, [1], dev.7m=48h.h, RW.1=1.L, Temperature_low_limit.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=4h.L, [1], dev.7m=48h.h, RW.1=1.L, EEPROM_unlock.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=5h.L, [1], dev.7m=48h.h, RW.1=1.L, EEPROM1.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=6h.L, [1], dev.7m=48h.h, RW.1=1.L, EEPROM2.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=7h.L, [1], dev.7m=48h.h, RW.1=1.L, Temperature_offset.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=8h.L, [1], dev.7m=48h.h, RW.1=1.L, EEPROM3.Nm.h
+Fields dev.7m=48h.h, RW.1=0.L, add.8m=Fh.L, [1], dev.7m=48h.h, RW.1=1.L, Device_ID.Nm.h
+
+// Single Read Registers
+
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=0.i, temperature.Nm.d*7.8125$mC
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=1.i, configuration.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=2.i, Temperature_high_limit.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=3.i, Temperature_low_limit.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=4.i, EEPROM_unlock.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=5.i, EEPROM1.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=6.i, EEPROM2.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=7.i, Temperature_offset.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=8.i, EEPROM3.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, add.8m=Fh.i, Device_ID.Nm.h
+Fields dev.7m=48h.h, RW.1=1.L, data.Nm.h
+
+// Write Registers
+
+Fields dev.7m=48h.h, RW.1=0.L, add.8m.L, data.Nm.h
+
+Lookup RW
+[0]=$Write
+[1]=$Read
+
+Lookup add
+[0h]=$Temperature_Result
+[1h]=$Configuration
+[2h]=$Temperature_high_limit
+[3h]=$Temperature_low_limit
+[4h]=$EEPROM_unlock
+[5h]=$EEPROM1
+[6h]=$EEPROM2
+[7h]=$Temperature_offset
+[8h]=$EEPROM3
+[Fh]=$Device_ID
