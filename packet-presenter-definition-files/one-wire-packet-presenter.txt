@@ -1,0 +1,37 @@
+// Default Protocol Definition File
+// This file defines the transfers to/from a 1-Wire device
+
+[Protocol]
+name = 1_WIRE_PACKETS
+bitwise
+
+[Packet]
+[Start]
+type = event
+event = 1 // Presence
+[End]
+type = event
+event = 2 // Reset
+[Decode]
+
+[Fields]
+// These fields are used by Maxim/Dallas Digital Thermometers
+Fields ROMCommand.8=F0h.$Search Rom, Data.N.h
+Fields ROMCommand.8=33h.$Read Rom, Family.8.h, SerialNumber.48.h, CRC.8.h
+Fields ROMCommand.8=55h.$Match Rom, Family.8.h, SerialNumber.48.h, CRC.8.h
+Fields ROMCommand.8=CCh.$Skip ROM, Function.8=44h.$ConvertTemp
+Fields ROMCommand.8=CCh.$Skip ROM, Function.8=BEh.$Read Scratchpad, Temp.16.d, TH.8.h, TL.8l.h, Rsvd.16.i, Remain.8.h, CpC.8.h, CRC.8.h
+
+// These fields are used by Dallas Serial Number iButtons
+Fields ROMCommand.8=33h.$Read Rom, Family.8.h, SerialNumber.48.h, CRC.8.h
+Fields ROMCommand.8=0Fh.$Read Rom, Family.8.h, SerialNumber.48.h, CRC.8.h
+
+// These packets are used by 1-Wire EEPROMS
+Fields ROMCommand.8=33h.$Read Rom, Family.8.h, SerialNumber.48.h, CRC.8.h
+Fields ROMCommand.8.h, MemoryCommand.8=0Fh.$Write Scratchpad, Address.16.h, Data.N.h
+Fields ROMCommand.8.h, MemoryCommand.8=AAh.$Read Scratchpad, Address.16.h, ES.8.h, Data.N.h
+Fields ROMCommand.8.h, MemoryCommand.8=55h.$Copy Scratchpad, AuthCode.24.h
+Fields ROMCommand.8.h, MemoryCommand.8=F0h.$Read Memory, Address.16.h, Data.N.h
+
+// Catch All
+Fields ROMCommand.8.h, Data.N.h
