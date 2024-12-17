@@ -1,130 +1,146 @@
 /* =============================================================
 ACTIVE-PRO Firmware Debugger
-Debug Output Routines
-Converted to Rust by activefirmwaretools.com
+Bare-Metal Rust Version with Direct Hardware GPIO Control
 ===============================================================*/
 
-#![allow(dead_code)] // For unused placeholders
+#![no_std]
+#![no_main]
 
-use core::fmt::Write;
+use core::ptr;
 
-// Enable or disable ACTIVE Debug output
-const ACTIVE_DEBUG_ON: bool = true;
+// Define GPIO peripheral base address (e.g., for ARM Cortex-M, STM32)
+// Replace this with your specific microcontroller's base addresses
+const GPIO_BASE: u32 = 0x4002_0800; // Example GPIO base address (STM32 GPIOB)
 
-// ===============================================================================================
-// Modify these functions for your hardware interface setup
-// ===============================================================================================
+// GPIO register offsets
+const MODER_OFFSET: u32 = 0x00;    // GPIO Mode Register
+const BSRR_OFFSET: u32 = 0x18;     // GPIO Bit Set/Reset Register
 
-// Hardware initialization function
-pub fn active_init() {
-    // Replace these placeholders with your hardware initialization
-    // Examples below assume usage of embedded-hal compatible crates
-    
-    #[cfg(feature = "spi")]
-    {
-        // SPI interface example setup (embedded-hal crate)
-        println!("SPI hardware initialized");
-    }
+// Pin masks for GPIO pins (e.g., DATA = Pin 0, CLOCK = Pin 1)
+const DATA_PIN: u16 = 1 << 0;  // Pin 0 for DATA
+const CLOCK_PIN: u16 = 1 << 1; // Pin 1 for CLOCK
 
-    #[cfg(feature = "uart")]
-    {
-        // UART interface example setup
-        println!("UART hardware initialized");
-    }
+// =======================================================================
+// Hardware Initialization
+// =======================================================================
 
-    #[cfg(feature = "gpio")]
-    {
-        // GPIO interface example setup
-        println!("GPIO hardware initialized");
-    }
-}
+// Initialize GPIO pins for DATA and CLOCK
+fn active_init() {
+    unsafe {
+        let gpio_moder = (GPIO_BASE + MODER_OFFSET) as *mut u32;
 
-// Function to send a packet to the ACTIVE Debug Interface
-pub fn send_active_packet(data: &[u8]) {
-    #[cfg(feature = "spi")]
-    {
-        // SPI transmission example
-        println!("Sending packet via SPI: {:?}", data);
-    }
+        // Configure DATA and CLOCK pins as outputs (00: Input, 01: Output)
+        let moder_val = ptr::read_volatile(gpio_moder);
+        ptr::write_volatile(gpio_moder, moder_val | (0b01 << (0 * 2)) | (0b01 << (1 * 2)));
 
-    #[cfg(feature = "uart")]
-    {
-        // UART transmission example
-        println!("Sending packet via UART: {:?}", data);
-    }
-
-    #[cfg(feature = "gpio")]
-    {
-        // GPIO-based bit-banging example
-        for &byte in data {
-            println!("Sending byte via GPIO: {:08b}", byte);
-        }
+        // Initialize pins LOW
+        set_pin_low(DATA_PIN);
+        set_pin_low(CLOCK_PIN);
     }
 }
 
-// ===============================================================================================
-// ACTIVE Debug Routines (Enabled if ACTIVE_DEBUG_ON is true)
-// ===============================================================================================
+// =======================================================================
+// GPIO Pin Control Functions
+// =======================================================================
 
-#[cfg(feature = "debug")]
-pub mod active_debug {
-    use super::*;
-
-    const MAX_ACTIVE_LENGTH: usize = 255; // Maximum debug message length
-
-    pub fn active_value(channel: u8, mut value: i32) {
-        let mut buffer = Vec::with_capacity(MAX_ACTIVE_LENGTH);
-        buffer.push(0x7F); // Start packet
-        buffer.push(channel & 0x3F); // Type and channel
-
-        let positive = value >= 0;
-
-        // Encode value
-        while value != 0 {
-            if (positive && value >= 32) || (!positive && value < -32) {
-                buffer.push((value & 0x3F) as u8);
-                value >>= 6;
-            } else {
-                buffer.push(((value & 0x3F) | 0x40) as u8);
-                break;
-            }
-        }
-
-        // Send packet
-        send_active_packet(&buffer);
-    }
-
-    pub fn active_text(channel: u8, string: &str) {
-        let mut buffer = Vec::with_capacity(MAX_ACTIVE_LENGTH);
-        buffer.push(0x7F); // Start packet
-        buffer.push(0x40 | (channel & 0x3F)); // Type and channel
-
-        for c in string.chars() {
-            if buffer.len() >= MAX_ACTIVE_LENGTH - 1 {
-                break;
-            }
-            buffer.push(c as u8 & 0x7F);
-        }
-
-        buffer.push(0); // Null-terminate
-        send_active_packet(&buffer);
-    }
-
-    use core::fmt::Write;
-    pub fn active_printf(channel: u8, format: core::fmt::Arguments) {
-        let mut string_buffer = String::with_capacity(MAX_ACTIVE_LENGTH);
-        string_buffer.write_fmt(format).unwrap();
-        active_text(channel, &string_buffer);
+// Set a GPIO pin HIGH
+fn set_pin_high(pin: u16) {
+    unsafe {
+        let gpio_bsrr = (GPIO_BASE + BSRR_OFFSET) as *mut u32;
+        ptr::write_volatile(gpio_bsrr, pin as u32);
     }
 }
 
-// ===============================================================================================
-// Empty Debug Stubs if ACTIVE_DEBUG_ON is disabled
-// ===============================================================================================
+// Set a GPIO pin LOW
+fn set_pin_low(pin: u16) {
+    unsafe {
+        let gpio_bsrr = (GPIO_BASE + BSRR_OFFSET) as *mut u32;
+        ptr::write_volatile(gpio_bsrr, (pin as u32) << 16);
+    }
+}
 
-#[cfg(not(feature = "debug"))]
-pub mod active_debug {
-    pub fn active_value(_channel: u8, _value: i32) {}
-    pub fn active_text(_channel: u8, _string: &str) {}
-    pub fn active_printf(_channel: u8, _format: core::fmt::Arguments) {}
+// Toggle the CLOCK pin without delay
+fn toggle_clock() {
+    set_pin_high(CLOCK_PIN);
+    set_pin_low(CLOCK_PIN);
+}
+
+// =======================================================================
+// Packet Sending Routine: Bit-Banging GPIO
+// =======================================================================
+
+// Send a single byte via bit-banging
+fn send_byte(byte: u8) {
+    let mut value = byte;
+
+    for _ in 0..8 {
+        if value & 0x80 != 0 {
+            set_pin_high(DATA_PIN);
+        } else {
+            set_pin_low(DATA_PIN);
+        }
+
+        toggle_clock();
+        value <<= 1;
+    }
+}
+
+// Send a packet of bytes
+fn send_active_packet(data: &[u8]) {
+    for &byte in data {
+        send_byte(byte);
+    }
+}
+
+// =======================================================================
+// ACTIVE Debug Routines
+// =======================================================================
+
+// Send an integer value to the ACTIVE-PRO Debug Interface
+fn active_value(channel: u8, mut value: i32) {
+    let mut buffer = [0u8; 255];
+    let mut length = 0;
+
+    buffer[length] = 0x7F; // Start of packet
+    length += 1;
+    buffer[length] = channel & 0x3F;
+    length += 1;
+
+    loop {
+        if value.abs() >= 32 {
+            buffer[length] = (value & 0x3F) as u8;
+            length += 1;
+            value >>= 6;
+        } else {
+            buffer[length] = ((value & 0x3F) | 0x40) as u8;
+            length += 1;
+            break;
+        }
+    }
+
+    send_active_packet(&buffer[0..length]);
+}
+
+// Send a text string to the ACTIVE-PRO Debug Interface
+fn active_text(channel: u8, string: &str) {
+    let mut buffer = [0u8; 255];
+    let mut length = 0;
+
+    buffer[length] = 0x7F; // Start of packet
+    length += 1;
+    buffer[length] = 0x40 | (channel & 0x3F);
+    length += 1;
+
+    for c in string.bytes() {
+        if length >= buffer.len() - 1 {
+            break;
+        }
+        buffer[length] = c & 0x7F;
+        length += 1;
+    }
+
+    buffer[length] = 0; // Null terminator
+    length += 1;
+
+    send_active_packet(&buffer[0..length]);
 }
