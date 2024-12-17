@@ -1,0 +1,25 @@
+// Default Protocol Definition File
+// This file defines the transfers to/from a 9-bit UART device
+// The firt 9-bit byte specifies the address byte.
+// This assumes that the UART transmissions end with a CR
+
+[Protocol]
+name = UART_Packets
+bytewise
+9bit
+
+[Packet]
+[Start]
+type = next
+channelxory
+[End]
+type = value
+value = 0Dh // Assumes UART data ends with a CR
+channelxory
+
+[Decode]
+
+[Fields]
+
+Fields A.1x=1.i, Address.8x.h, TxData.Nx.h
+Fields A.1y=1.i, Address.8y.h, RxData.Ny.h
