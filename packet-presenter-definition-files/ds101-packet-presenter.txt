@@ -1,0 +1,85 @@
+// Bi Phase Protocol Definition File
+// This file defines the transfers to/from a DS101 device
+// over an biphase bus
+
+[Protocol]
+name = DS101_PACKET
+bytewise
+
+[Packet]
+[Start]
+type = event // Start Packet event
+event = 1
+
+[End]
+type = event
+event = 2 // Stop Packet event
+
+[Decode]
+
+[Fields]
+Fields Address.8.h,$SNRM_Frame, Command.8=93h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$SNRM_Frame, Command.8=83h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$SNRM_Frame, Command.8=93h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$UA_Frame, Command.8=63h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$UA_Frame, Command.8=73h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$DISC_Frame, Command.8=43h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$DISC_Frame, Command.8=53h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RNR_Frame, Command.8=23h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RNR_Frame, Command.8=33h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=01h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=11h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=21h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=31h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=41h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=51h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=61h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=71h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=81h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=91h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=A1h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=B1h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=C1h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=D1h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=E1h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$RR_Frame, Command.8=F1h.i, Params.N.h, EOP.16.i
+Fields Address.8.h,$I_Frame, Command.8.h, FDU_COMMAND.16.L, Length.16.d, Params.N.h, CRC.16.h, EOP.8.i
+Fields Address.8.h,Command.8.L, Params.N.h
+Fields DefaultData.N.h
+
+LOOKUP Command
+[93h]=$SNRM
+[83h]=$SNRM
+[73h]=$UA
+[63h]=$UA
+[53h]=$DISC
+[43h]=$DISC
+[33h]=$RNR
+[23h]=$RNR
+
+
+LOOKUP FDU_COMMAND
+[0000h]=$End_of_Transmission.request
+[0002h]=$Success_Acknowledgment_w/o_Data
+[0001h]=$Failure_Acknowledgment_w/o_Data
+[0003h]=$Failure_Acknowledge_with_Data
+[0010h]=$Set_Address.request
+[0030h]=$Set_Identifier.request
+[0050h]=$Association_and_Exchange_Identifier.request
+[0060h]=$Association_and_Exchange_Identifier.response
+[01B0h]=$Key/Data.request_(Fill)
+[03FFh]=$Command.request
+[0070h]=$Field_Specifier.request
+[0190h]=$File_Header.request_(Fill)
+[0290h]=$File_Header.request_(Issue)
+[0198h]=$End_of_File.request_(Fill)
+[0298h]=$End_of_File.request_(Issue)
+[02B0h]=$Key/Data.request_(Issue)
+[01B8h]=$Program/File_Data.request_(Fill)
+[02B8h]=$Program/File_Data.request_(Issue)
+[01D0h]=$CIK_Split.request_(Fill)
+[02D0h]=$CIK_Split.request_(Issue)
+[01D8h]=$DTD_Split.request_(Fill)
+[02D8h]=$DTD_Split.request_(Issue)
+[01E0h]=$TrKEK.request_(Fill)
+[02E0h]=$TrKEK.request_(Issue)
