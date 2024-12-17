@@ -1,0 +1,16 @@
+[Protocol]
+    name = UART_BINARY
+    bytewise
+
+[Packet]
+    [Start]
+       type = next
+
+     [End]
+       type = timeout
+       value = 170   // timeout in microseconds
+
+   [Decode]
+
+   [Fields]
+       Fields Tx.Nx.h, Rx.Ny.h
