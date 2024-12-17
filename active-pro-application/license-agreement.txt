@@ -1,0 +1,31 @@
+Activet-Pro License Agreement
+
+The following License Agreement is a legal agreement between you (either an individual or entity), the end user, and Active Firmware Tools, makers of the Active-Pro Firmware Debugger and Active-Pro software. 
+
+By installing the Active-Pro software, you agree to be bound by the terms of this Agreement.
+
+Grant of License
+
+Active Firmware Tools provides royalty-free Software, both in the Active-Pro Package and on-line at www.activefirmwaretools.com, for use with the Active-Pro and grants you license to use this Software under the following conditions:  a) You may use the Active-Pro Software only in conjunction with an Active-Pro hardware pod, or in demonstration mode with no Active-Pro connected,  b)  You may not use this Software in conjunction with any pod providing similar functionality made by other than Active Firmware Tools, and c) You may not sell, rent, transfer or lease the Software to another party. 
+
+Copyright
+
+No part of the Active-Pro Package (including but not limited to Software, manuals, labels, Active-Pro, or accompanying downloads) may be reproduced, stored in a retrieval system, or transcribed, in any form or by any means, electronic, mechanical, photocopying, recording or otherwise, without the prior written permission of Active Firmware Tools, with the sole exception of making backup copies of the Software for restoration purposes on your own machine. You may not reverse engineer, decompile, disassemble, merge or alter the Active-Pro Software or Active-Pro hardware pod in any way.
+
+Limited Warranty
+
+The Active-Pro Software and related contents are provided “as is” without warranty of any kind, either expressed or implied, including but not limited to the implied warranties of merchantability and fitness for a particular purpose, with the sole exception of manufacturing failures in the Active-Pro hardware pod. Active Firmware Tools warrants the Active-Proto be free from defects in materials and workmanship for a period of 12 (twelve) months from the purchase date. If during this period a defect in the above should occur, the defective item may be returned to the place of purchase for a replacement. After this period a nominal fee will be charged for replacement parts.  You may, however, return the entire Active-Pro within 30 days from the date of purchase for any reason for a full refund as long as the contents are in the same condition as when shipped to you.  Damaged or incomplete Active-Pro Packages will not be refunded.
+
+Software Updates
+
+The information in the Software and Documentation is subject to change without notice and, except for the warranty, does not represent a commitment on the part of Active Firmware Tools. Active Firmware Tools cannot be held liable for any mistakes in these items and reserves the right to make changes to the product in order to make improvements at any time.  The Software will change from time to time to add new functionality, fix bugs and disable the use of non-Active Firmware Tools-made products that attempt to use this Software.
+
+Liability
+
+IN NO EVENT WILL ACTIVE FIRMWARE TOOLS BE LIABLE TO YOU FOR DAMAGES, DIRECT, INDIRECT, INCIDENTAL OR CONSEQUENTIAL, INCLUDING DAMAGES FOR ANY LOST PROFITS, LOST SAVINGS OR OTHER INCIDENTAL OR CONSEQUENTIAL DAMAGES, ARISING OUT OF THE USE OR INABILITY TO USE SUCH ACTIVE-PRO, SOFTWARE AND DOCUMENTATION, EVEN IF ACTIVE FIRMWARE TOOLS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES OR FOR ANY CLAIM BY ANY OTHER PARTY. SOME STATES DO NOT ALLOW THE EXCLUSION OR LIMITATION OF LIABILITY FOR CONSEQUENTIAL OR INCIDENTAL DAMAGES, SO THE ABOVE LIMITATION MAY NOT APPLY TO YOU. IN NO EVENT WILL ACTIVE FIRMWARE TOOLS LIABILITY FOR DAMAGES TO YOU OR ANY OTHER PERSON EVER EXCEED THE AMOUNT OF THE PURCHASE PRICE PAID BY YOU TO ACTIVE FIRMWARE TOOLS TO ACQUIRE THE ACTIVE-PRO, REGARDLESS OF THE FORM OF THE CLAIM.
+
+Term
+
+This license agreement is effective until terminated. You may terminate it at any time by returning the Active-Pro Package (together with the Active-Pro hardware pod, Software and Documentation) to Active Firmware Tools. It will also terminate upon conditions set forth elsewhere in this agreement or if you fail to comply with any term or condition of this agreement. You agree that upon such termination you will return the Active-Pro Package, together with the Active-Pro hardware pod, Software and Documentation, to Active Firmware Tools.
+
+ 
