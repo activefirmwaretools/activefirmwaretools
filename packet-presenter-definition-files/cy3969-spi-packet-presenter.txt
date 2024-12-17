@@ -1,0 +1,106 @@
+[Protocol]  
+    name = CypressRFIC  
+    bytewise  
+ [Packet]  
+    [Start]  
+        type = event  
+        event = 1  // SS goes active  
+    [End]  
+        type = event  
+        event = 2   // SS goes inactive  
+
+ [Decode]  
+
+ [Fields]  
+
+// RX_IRQ_STATUS_ADR Read and Write Command  
+
+    Fields Dir.1y=0.L, Inc.1y.tf, Address.6y=07h.L, Dummy.8x.i, RXOW.1x.h,  
+        SOPDET.1x.h, RXB16.1x.h, RXB8.1x.h, RXB1.1x.h, RXBERR.1x.h, RXC.1x.h,  
+        RXE.1x.h  
+    Fields Dir.1y=1.L, Inc.1y.tf, Address.6y=07h.L, RXOW.1y.h, SOPDET.1y.h,  
+        RXB16.1y.h, RXB8.1y.h, RXB1.1y.h, RXBERR.1y.h, RXC.1y.h, RXE.1y.h  
+    // TX_IRQ_STATUS_ADR Read and Write Command  
+    Fields Dir.1y=0.L, Inc.1y.tf, Address.6y=04h.L, Dummy.8x.i, OS.1x.h, LV.1x.h,  
+        TXB15.1x.h, TXB8.1x.h, TXB1.1x.h, TXBERR.1x.h, TXC.1x.h, TXE.1x.h  
+    Fields Dir.1y=1.L, Inc.1y.tf, Address.6y=04h.L, OS.1y.h, LV.1y.h, TXB15.1y.h,  
+        TXB8.1y.h, TXB1.1y.h, TXBERR.1y.h, TXC.1y.h, TXE.1y.h  
+    // RX_BUFFER_ADR Read and Write Command  
+    Fields Dir.1y=0.L, Inc.1y.tf, Address.6y=21h.L, Dummy.8x.i,  
+        RXData.Nx.h  
+    Fields Dir.1y=1.L, Inc.1y.tf, Address.6y=21h.L, RXData.Ny.h  
+    // TX_BUFFER_ADR Read and Write Command  
+    Fields Dir.1y=0.L, Inc.1y.tf, Address.6y=20h.L, Dummy.8x.i,  
+        TxData.Nx.h  
+    Fields Dir.1y=1.L, Inc.1y.tf, Address.6y=20h.L, TxData.Ny.h  
+    Fields Dir.1y=0.L, Inc.1y.tf, Address.6y.L, Dummy.8x.i,  
+        ReadData.Nx.h  
+    Fields Dir.1y=1.L, Inc.1y.tf, Address.6y.L, WriteData.Nmy.h  
+     
+    Lookup Dir  
+        [0]=$Read  
+        [1]=$Write  
+
+     Lookup Address  
+        [00h]=$CHANNEL_ADR  
+        [01h]=$TX_LENGTH_ADR  
+        [02h]=$TX_CTRL_ADR  
+        [03h]=$TX_CFG_ADR  
+        [04h]=$TX_IRQ_STATUS_ADR  
+        [05h]=$RX_CTRL_ADR  
+        [06h]=$RX_CFG_ADR  
+        [07h]=$RX_IRQ_STATUS_ADR  
+        [08h]=$RX_STATUS_ADR  
+        [09h]=$RX_COUNT_ADR  
+        [0ah]=$RX_LENGTH_ADR  
+        [0bh]=$PWR_CTRL_ADR  
+        [0ch]=$XTAL_CTRL_ADR  
+        [0dh]=$IO_CFG_ADR  
+        [0eh]=$GPIO_CTRL_ADR  
+        [0fh]=$XACT_CFG_ADR  
+        [10h]=$FRAMING_CFG_ADR  
+        [11h]=$DATA32_THOLD_ADR  
+        [12h]=$DATA64_THOLD_ADR  
+        [13h]=$RSSI_ADR  
+        [14h]=$EOP_CTRL_ADR  
+        [15h]=$CRC_SEED_LSB_ADR  
+        [16h]=$CRC_SEED_MSB_ADR  
+        [17h]=$TX_CRC_LSB_ADR  
+        [18h]=$TX_CRC_MSB_ADR  
+        [19h]=$RX_CRC_LSB_ADR  
+        [1ah]=$RX_CRC_MSB_ADR  
+        [1bh]=$TX_OFFSET_LSB_ADR  
+        [1ch]=$TX_OFFSET_MSB_ADR  
+        [1dh]=$MODE_OVERRIDE_ADR  
+        [1eh]=$RX_OVERRIDE_ADR  
+        [1fh]=$TX_OVERRIDE_ADR  
+        [26h]=$XTAL_CFG_ADR  
+        [27h]=$CLK_OVERRIDE_ADR  
+        [28h]=$CLK_EN_ADR  
+        [29h]=$RX_ABORT_ADR  
+        [32h]=$AUTO_CAL_TIME_ADR  
+        [35h]=$AUTO_CAL_OFFSET_ADR  
+        [39h]=$ANALOG_CTRL_ADR  
+        [20h]=$TX_BUFFER_ADR  
+        [21h]=$RX_BUFFER_ADR  
+        [22h]=$SOP_CODE_ADR  
+        [23h]=$DATA_CODE_ADR  
+        [24h]=$PREAMBLE_ADR  
+        [25h]=$MFG_ID_ADR  
+ 
+[Protocol]  
+    name = RXData  
+    bytewise  
+
+ [Packet]  
+    [Start]  
+        type = next  
+
+    [End]  
+        type = event  
+        event = 127 // All Data passed in  
+
+ [Decode]  
+
+ [Fields]  
+    Fields ReceiveData.N.h
