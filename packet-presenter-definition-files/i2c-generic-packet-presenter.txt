@@ -1,0 +1,25 @@
+ [Protocol] 
+    name = I2C_Packets  // This name is used for the waveline name on the capture 
+    bytewise 
+
+ [Packet] 
+    [Start] 
+        type = event 
+        event = 1	// Start bit 
+
+    [End] 
+        type = event 
+        event = 2	// Stop Bit 
+
+ [Decode] 
+
+ [Fields] 
+    Fields dev.7m.h, RW.1.L, add.8m.h, [1], dev.7m.h, RW.1.L, data.Nm.h     // Read with 8-bit address 
+    Fields dev.7m.h, RW.1.L, add.16m.h, [1], dev.7m.h, RW.1.L, data.Nm.h    // Read with 16-bit address 
+    Fields dev.7m.h, RW.1=1.L, data.Nm.h            // Read Transaction 
+    Fields dev.7m.h, RW.1.L, add.8m.h, data.Nm.h    // Write Transaction 
+
+     Lookup RW 
+        [0]=$Write 
+        [1]=$Read 
+
