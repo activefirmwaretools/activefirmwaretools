@@ -1,0 +1,17 @@
+[Protocol] 
+    name = SPI_Packets 
+    bytewise 
+
+ [Packet] 
+    [Start] 
+        type = event 
+        event = 1	// SS Active 
+
+    [End] 
+        type = event 
+        event = 2	// SS Inactive 
+
+ [Decode] 
+
+ [Fields] 
+    Fields MOSIData.Nx.h, MISOData.Ny.h 
