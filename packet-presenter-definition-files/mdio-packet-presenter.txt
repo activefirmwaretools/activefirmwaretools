@@ -1,0 +1,44 @@
+// Default Protocol Definition File
+// This file defines the transfers to/from an MDIO device
+
+[Protocol]
+name = MDIO_Packets // This name is used for the waveline name on the capture
+bytewise
+
+[Packet]
+[Start]
+type = event
+event = 1 // Start bit
+
+[End]
+type = event
+event = 2 // Stop Bit
+
+[Decode]
+
+[Fields]
+
+Fields ST.2=1.L, OP22.2.L, PHYADR.5.h, REGADR.5.h, TA.2.i, DATA.16.h
+Fields ST.2=0.L, OP45.2.L, PHYADR.5.h, DEVTYPE.5.h, TA.2.i, ADDRDATA.16.h
+
+LOOKUP ST
+[0]=$clause22
+[1]=$clause45
+
+LOOKUP OP22
+[1]=$WRITE
+[2]=$READ
+
+LOOKUP OP45
+[0]=$ADDRESS
+[1]=$WRITE
+[2]=$READ_ADDR
+[3]=$READ
+
+LOOKUP DEVTYPE
+[0]=$RESERVED
+[1]=$PMDPMA
+[2]=$WIS
+[3]=$PCS
+[4]=$PHYXS
+[5]=$DTEXS
