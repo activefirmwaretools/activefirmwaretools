@@ -1,0 +1,122 @@
+// Default Protocol Definition File
+// This file defines the transfers to/from a custom device
+[Protocol]
+name = CHSI_Packets // This name is used for the waveline name on the capture
+bytewise
+[Packet]
+[Start]
+type = event
+event = 1 // Start bit
+[End]
+type = event
+event = 3 // Start or Stop Bit
+exclude
+[Decode]
+[Fields]
+Fields $GetCryptoStatus, routing.8.i, ID.8=65h.h, len.8.h, CRC.16B.h
+Fields $GetCryptoStatusResponse, routing.8.i, ID.8=75h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $KeyRolloverRequest, routing.8.i, ID.8=40h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $ACK, routing.8.i, ID.8=FFh.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $UnavailableNAK, routing.8.i, ID.8=FAh.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $IllegalNAK, routing.8.i, ID.8=FBh.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $BusyNAK, routing.8.i, ID.8=FCh.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $MessageErrorNAK, routing.8.i, ID.8=FDh.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $CRCErrorNAK, routing.8.i, ID.8=FEh.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $SetTimeofDayRequest, routing.8.i, ID.8=41h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $SetTimeofDayResponse, routing.8.i, ID.8=51h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetTimeofDayRequest, routing.8.i, ID.8=60h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetTimeofDayResponse, routing.8.i, ID.8=70h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetMissionDataRequest, routing.8.i, ID.8=61h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetMissionDataResponse, routing.8.i, ID.8=71h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetKeyandFillStatusRequest, routing.8.i, ID.8=62h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetKeyandFillStatusResponse, routing.8.i, ID.8=72h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $SetCryptoOperatingModeRequest, routing.8.i, ID.8=42h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $ZeroizeRequest, routing.8.i, ID.8=43h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $RunIBIT, routing.8.i, ID.8=44h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetIBITResultsRequest, routing.8.i, ID.8=63h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetIBITResultsResponse, routing.8.i, ID.8=73h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetVersionRequest, routing.8.i, ID.8=64h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GetVersionResponse, routing.8.i, ID.8=74h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $SetCryptonetRequest, routing.8.i, ID.8=45h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $ResetCryproRequest, routing.8.i, ID.8=46h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $TransecUpdate, routing.8.i, ID.8=20h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $AvailabilityAlertAdvisory, routing.8.i, ID.8=80h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GenerateTRANSECRequest, routing.8.i, ID.8=21h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $GenerateTRANSECResponse, routing.8.i, ID.8=31h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGInterrogationEncryptRequest, routing.8.i, ID.8=00h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGInterrogationEncryptResponse, routing.8.i, ID.8=10h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGInterrogationDecryptRequest, routing.8.i, ID.8=04h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGInterrogationDecryptResponse, routing.8.i, ID.8=14h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGReportEncryptRequest, routing.8.i, ID.8=01h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGReportEncryptResponse, routing.8.i, ID.8=11h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGReportDecryptRequest, routing.8.i, ID.8=05h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $PGReportDecryptResponse, routing.8.i, ID.8=15h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $IDReplyEncryptRequest, routing.8.i, ID.8=08h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $IDReplyEncryptResponse, routing.8.i, ID.8=18h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $DataReplyEncryptRequest, routing.8.i, ID.8=09h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $DataReplyEncryptResponse, routing.8.i, ID.8=19h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $ReplyDecryptRequest, routing.8.i, ID.8=0Ah.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $ReplyDecryptResponse, routing.8.i, ID.8=1Ah.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDInterrogationEncryptRequest, routing.8.i, ID.8=02h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDInterrogationEncryptResponse, routing.8.i, ID.8=12h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDInterrogationDecryptRequest, routing.8.i, ID.8=06h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDInterrogationDecryptResponse, routing.8.i, ID.8=16h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDReportEncryptRequest, routing.8.i, ID.8=03h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDReportEncryptResponse, routing.8.i, ID.8=13h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDReportDecryptRequest, routing.8.i, ID.8=07h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields $HDReportDecryptResponse, routing.8.i, ID.8=17h.h, len.8.h, data.Nm.h, CRC.16B.h
+Fields routing.8.i, ID.8.L, len.8.h, data.Nm.h, CRC.16B.h
+
+  Lookup ID
+[65h]=$GetCryptoStatus
+[75h]=$GetCryptoStatusResponse
+[40h]=$KeyRolloverRequest
+[FFh]=$ACK
+[FAh]=$UnavailableNAK
+[FBh]=$IllegalNAK
+[FCh]=$BusyNAK
+[FDh]=$MessageErrorNAK
+[FEh]=$CRCErrorNAK
+[41h]=$SetTimeofDayRequest
+[51h]=$SetTimeofDayResponse
+[60h]=$GetTimeofDayRequest
+[70h]=$GetTimeofDayResponse
+[61h]=$GetMissionDataRequest
+[71h]=$GetMissionDataResponse
+[62h]=$GetKeyandFillStatusRequest
+[72h]=$GetKeyandFillStatusResponse
+[42h]=$SetCryptoOperatingModeRequest
+[43h]=$ZeroizeRequest
+[44h]=$RunIBIT
+[63h]=$GetIBITResultsRequest
+[73h]=$GetIBITResultsResponse
+[64h]=$GetVersionRequest
+[74h]=$GetVersionResponse
+[45h]=$SetCryptonetRequest
+[46h]=$ResetCryproRequest
+[20h]=$TransecUpdate
+[80h]=$AvailabilityAlertAdvisory
+[21h]=$GenerateTRANSECRequest
+[31h]=$GenerateTRANSECResponse
+[00h]=$PGInterrogationEncryptRequest
+[10h]=$PGInterrogationEncryptResponse
+[04h]=$PGInterrogationDecryptRequest
+[14h]=$PGInterrogationDecryptResponse
+[01h]=$PGReportEncryptRequest
+[11h]=$PGReportEncryptResponse
+[05h]=$PGReportDecryptRequest
+[15h]=$PGReportDecryptResponse
+[08h]=$IDReplyEncryptRequest
+[18h]=$IDReplyEncryptResponse
+[09h]=$DataReplyEncryptRequest
+[19h]=$DataReplyEncryptResponse
+[0Ah]=$ReplyDecryptRequest
+[1Ah]=$ReplyDecryptResponse
+[02h]=$HDInterrogationEncryptRequest
+[12h]=$HDInterrogationEncryptResponse
+[06h]=$HDInterrogationDecryptRequest
+[16h]=$HDInterrogationDecryptResponse
+[03h]=$HDReportEncryptRequest
+[13h]=$HDReportEncryptResponse
+[07h]=$HDReportDecryptRequest
+[17h]=$HDReportDecryptResponse
