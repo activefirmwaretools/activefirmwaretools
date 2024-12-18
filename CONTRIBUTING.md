@@ -1,10 +1,4 @@
-Here’s the entire **CONTRIBUTING.md** file written in one complete block so you can copy and paste it directly into your repository. 
 
----
-
-**CONTRIBUTING.md**
-
-```markdown
 # Contributing to Active Firmware Tools
 
 We’re excited to have you contribute to **Active Firmware Tools**! This document outlines the steps to contribute effectively while maintaining the quality and integrity of our tools.
@@ -22,10 +16,9 @@ Click the **"Fork"** button on the repository's GitHub page to create a copy of 
 Clone your fork to your local machine using this command:
 
 ```bash
-git clone https://github.com/<your-username>/<repo-name>.git
+git clone https://github.com/activefirmwaretools/activefirmwaretools.git
 ```
 
-Replace `<your-username>` with your GitHub username and `<repo-name>` with the repository name.
 
 ### 3. Create a Branch
 Always work on a separate branch for your changes. Use a descriptive branch name that reflects your feature or fix:
@@ -131,13 +124,3 @@ If you encounter a bug or have an idea for improvement, please open an issue in 
 If you need clarification about contributing, open an issue or reach out to us at **support@activefirmwaretools.com**.
 
 Thank you for helping improve **Active Firmware Tools**! Your contributions make embedded debugging faster, smarter, and more powerful.
-```
-
----
-
-### Instructions:
-1. Copy this entire block into a file named **`CONTRIBUTING.md`**.
-2. Place it in the root directory of your GitHub repository.
-3. Replace placeholders like `<your-username>` or `<repo-name>` with your specific repository details.
-
-This single file covers everything: forking, coding guidelines, testing, pull request requirements, and reporting issues.
