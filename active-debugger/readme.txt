@@ -1,3 +1,5 @@
+---
+...
 
 # Active Debugger Open Source Hardware and Firmware Projects
 
@@ -33,9 +35,5 @@ Contributions are what make the open-source community such an amazing place to l
 ## Support
 For support, email [support@activefirmwaretools.com] or join our community at www.activefirmwaretools.com
 
-
 ---
-
 ```
-
-This README is designed to provide clear and transparent information about the open-source status of the hardware and firmware, and the proprietary nature of the PC application. This clarity is important for setting the right expectations and encouraging proper use and contributions to your project.
