@@ -1,6 +1,3 @@
----
-...
-
 # Active Debugger Open Source Hardware and Firmware Projects
 
 ## Overview
@@ -34,6 +31,3 @@ Contributions are what make the open-source community such an amazing place to l
 
 ## Support
 For support, email [support@activefirmwaretools.com] or join our community at www.activefirmwaretools.com
-
----
-```
