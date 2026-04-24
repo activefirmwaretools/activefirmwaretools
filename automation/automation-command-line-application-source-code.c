@@ -15,7 +15,6 @@
 #include <QtCore>
 
 #define ACTIVE_TCP_PORT_DEVICE_1 37800
-#define ACTIVE_TCP_PORT_DEVICE_2 37801
 
 QTcpSocket socket;
 
@@ -70,16 +69,11 @@ int main(int argc, char * argv[])
     else if (argc == 3)
     {
         // The port is specified
-        if (strcmpi(argv[1], "1") == 0)
+        int deviceNum = atoi(argv[1]);
+        if (deviceNum >= 1 && deviceNum <= 8)
         {
-            port = ACTIVE_TCP_PORT_DEVICE_1;
-            device = 1;
-            Command = QString::fromLatin1(argv[2]);
-        }
-        else if (strcmpi(argv[1], "2") == 0)
-        {
-            port = ACTIVE_TCP_PORT_DEVICE_2;
-            device = 2;
+            port    = ACTIVE_TCP_PORT_DEVICE_1 + (deviceNum - 1);
+            device  = deviceNum;
             Command = QString::fromLatin1(argv[2]);
         }
         else
@@ -92,7 +86,7 @@ int main(int argc, char * argv[])
     {
         out << "ActiveAPICommandLine version 1.1\n";
         out << "Usage: activeapicommandline [optional device number] \"command with parameters\"\n";
-        out << "       [optional device number] is 1 or 2.  Device number 1 is default if not provided.\n";
+        out << "       [optional device number] is 1 to 8.  Device number 1 is default if not provided.\n";
         out << "       command is the command to send and must be encloded in quotes.\n";
         out << "       Responses will be written to the console output (stdio).\n";
         out << "       Commands and Responses are available at http://www.activefirmwaretools.com\n";
@@ -100,7 +94,7 @@ int main(int argc, char * argv[])
         return (0);
     }
 
-    socket.connectToHost("localhost", port);
+    socket.connectToHost("127.0.0.1", port);
 
     if (socket.waitForConnected(5000)) {                // Wait for the connection to be initialized
 
@@ -110,11 +104,7 @@ int main(int argc, char * argv[])
 
         out << response;      // The responses already have a new line
 
-        socket.disconnectFromHost();
-        if (socket.state() != QAbstractSocket::UnconnectedState)
-            socket.waitForDisconnected(1000);
-
-        socket.close();                               // Close the connection
+        socket.abort();                               // Close the connection immediately
     }
     else
     {
