@@ -1,11 +1,10 @@
-[readme.md](https://github.com/user-attachments/files/27069164/readme.md)
 # MCP Server
 
 ## Overview
 
 This folder contains a Model Context Protocol server that lets AI assistants read and analyze your captured traces. Point Claude Desktop or any other MCP-compatible client at this server and ask questions about your `.aft` trace files in plain English.
 
-For a complete beginner's walkthrough including Claude Desktop setup, Python installation, and JSON config editing, see the [MCP Server section](https://www.activefirmwaretools.com/manual) of the user's manual.
+For a complete beginner's walkthrough including Claude Desktop setup, Python installation, and JSON config editing, see [MCP Server for AI Assistants](https://www.activefirmwaretools.com/usersmanualold/main-window-acm82) in the [user's manual](https://www.activefirmwaretools.com/usersmanual).
 
 ## What it does
 
@@ -47,7 +46,7 @@ Detailed install instructions for Windows, macOS, and Linux are in the manual se
 
 ## The simpler alternative
 
-If you just want to share a trace with an AI once, you do not need the MCP server. The Active-Pro application's **Copy AI Snapshot** button copies a structured representation of the current view to your clipboard. Paste it into any AI chat and ask your question.
+If you just want to share a trace with an AI once, you do not need the MCP server. The Active-Pro application's [Copy AI Snapshot](https://www.activefirmwaretools.com/usersmanualold/main-window-amxnk) button copies a structured representation of the current view to your clipboard. Paste it into any AI chat and ask your question.
 
 The MCP server is for ongoing, hands-off analysis where the model can pull data on its own.
 
