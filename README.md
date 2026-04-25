@@ -1,11 +1,10 @@
-[README.md](https://github.com/user-attachments/files/27071294/README.md)
 # Active Firmware Tools
 
 **Record. Reveal. Refine.**
 
 The official repository for the Active-Pro Debugger and Logic Analyzer family — the recorder of embedded system behavior.
 
-[Download](https://activefirmwaretools.com/download) · [User's Manual](REPLACE_WITH_REAL_URL) · [Store](https://activefirmwaretools.com/store) · [Blog](https://activefirmwaretools.com/blog)
+[Download](https://activefirmwaretools.com/download) · [User's Manual](https://activefirmwaretools.com/usersmanual) · [Store](https://activefirmwaretools.com/store) · [Blog](https://activefirmwaretools.com/active-firmware-tools-blog)
 
 ---
 
@@ -39,7 +38,7 @@ All three work with the free Active-Pro application on Windows, macOS, and Linux
 1. **Buy hardware** at [activefirmwaretools.com/store](https://activefirmwaretools.com/store), or skip ahead and use demo mode.
 2. **Download the application** from [activefirmwaretools.com/download](https://activefirmwaretools.com/download) — Windows, macOS, and Linux builds available.
 3. **Press Capture.** With hardware attached you'll see your signals live. Without hardware you'll get the full demo capture to explore the UI.
-4. **Read the manual** at [activefirmwaretools.com/users-manual](https://activefirmwaretools.com/users-manual) when you're ready to go deeper.
+4. **Read the manual** at [activefirmwaretools.com/usersmanual](https://activefirmwaretools.com/usersmanual) when you're ready to go deeper.
 
 ## AI-assisted analysis
 
