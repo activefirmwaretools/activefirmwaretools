@@ -5,7 +5,7 @@
 
 The official repository for the Active-Pro Debugger and Logic Analyzer family — the recorder of embedded system behavior.
 
-[Download](https://activefirmwaretools.com/download) · [User's Manual](https://activefirmwaretools.com/users-manual) · [Store](https://activefirmwaretools.com/store) · [Blog](https://activefirmwaretools.com/blog)
+[Download](https://activefirmwaretools.com/download) · [User's Manual](REPLACE_WITH_REAL_URL) · [Store](https://activefirmwaretools.com/store) · [Blog](https://activefirmwaretools.com/blog)
 
 ---
 
