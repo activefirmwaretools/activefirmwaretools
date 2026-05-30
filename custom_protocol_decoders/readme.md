@@ -1,9 +1,8 @@
-
 # ACTIVE-PRO Custom Decoders
 
-Python protocol decoders for the [ACTIVE-PRO Debugger](https://usbee.com) (BESTDebugger), the cross-platform Qt5/C++ companion app for the ACTIVE-series USB logic analyzer / oscilloscope hardware pods.
+Python protocol decoders for the **ACTIVE-PRO Debugger** app.
 
-Each `*_Decoder.py` file in this folder is a self-contained protocol decoder that the app discovers at startup, lists in its decoder picker, and runs against captured digital / analog samples. Decoders are plain Python, fully editable, and hot-reloadable: drop a new file in, restart the decoder slot, see results.
+Each `*_Decoder.py` file in this folder is a self-contained protocol decoder. The app discovers it at startup, lists it in the decoder picker, and runs it against captured digital and analog samples. Decoders are plain Python, fully editable, and reloadable: drop a new file in, hit Reload in the picker, see your protocol decoded.
 
 ## Bundled decoders
 
@@ -12,10 +11,10 @@ Each `*_Decoder.py` file in this folder is a self-contained protocol decoder tha
 | Decoder | Signals | Notes |
 | --- | --- | --- |
 | `UART_Decoder.py` | 1 digital | Standard async serial. Configurable baud, data bits, parity, stop bits. |
-| `RS232_Decoder.py` | 1 analog | Probes directly on a DB9 / DB25 wire. Thresholds +/-12 V at 0 V. |
+| `RS232_Decoder.py` | 1 analog | Probe directly on a DB9 / DB25 wire. Thresholds +/-12 V at 0 V. |
 | `RS485_Decoder.py` | 2 analog | Differential. Computes A,B per sample. |
-| `MIDI_Decoder.py` | 1 digital | 31250 baud, TTL side. Decodes Note On/Off, CC, SysEx, etc. |
-| `DMX512_Decoder.py` | 1 digital | Lighting protocol on the TTL side (use RS-485 decoder for the wire). |
+| `MIDI_Decoder.py` | 1 digital | 31250 baud. Decodes Note On/Off, CC, SysEx, and friends. |
+| `DMX512_Decoder.py` | 1 digital | Lighting protocol on the TTL side (use RS-485 for the wire). |
 | `Modbus_RTU_Decoder.py` | 1 digital | UART framing plus Modbus PDU parsing with >=3.5 char idle detection. |
 
 **Synchronous serial**
@@ -24,10 +23,10 @@ Each `*_Decoder.py` file in this folder is a self-contained protocol decoder tha
 | --- | --- | --- |
 | `SPI_Decoder.py` | 4 digital | CS / SCK / MOSI / MISO. Configurable mode, bit order, word size. |
 | `QSPI_Decoder.py` | 6 digital | CLK / CS / IO0,IO3. Supports 1-1-1, 1-1-2, 1-1-4, 1-4-4, 4-4-4 lane widths. |
-| `I2C_Decoder.py` | 2 digital | SCL / SDA with START/STOP/repeated-start, ACK/NACK, 7 + 10 bit addressing. |
+| `I2C_Decoder.py` | 2 digital | SCL / SDA with START/STOP/repeated-start, ACK/NACK, 7 and 10 bit addressing. |
 | `SMBus_Decoder.py` | 2 digital | Strict I2C superset. Reports command codes and PEC. |
 | `PMBus_Decoder.py` | 2 digital | PMBus 1.x on SMBus. Named commands plus LINEAR11 / LINEAR16 decoding. |
-| `I3C_Decoder.py` | 2 digital | MIPI I3C v1.1 SDR. Recognizes 0x7E preamble, full CCC table, ENTDAA, IBI, HDR entry. |
+| `I3C_Decoder.py` | 2 digital | MIPI I3C v1.1 SDR. 0x7E preamble, full CCC table, ENTDAA, IBI, HDR entry. |
 | `I2S_Decoder.py` | 3 digital | BCLK / LRCLK / SD audio. Configurable bits per word. |
 | `PS2_Decoder.py` | 2 digital | CLK / DATA. Keyboard or mouse byte streams. |
 
@@ -35,10 +34,10 @@ Each `*_Decoder.py` file in this folder is a self-contained protocol decoder tha
 
 | Decoder | Signals | Notes |
 | --- | --- | --- |
-| `OneWire_Decoder.py` | 1 digital | Dallas / Maxim 1-Wire. RESET / PRESENCE plus ROM + function commands. |
-| `DHT_Decoder.py` | 1 digital | DHT11 / DHT22 (AM2302) humidity + temperature frames. |
+| `OneWire_Decoder.py` | 1 digital | Dallas / Maxim 1-Wire. RESET / PRESENCE plus ROM and function commands. |
+| `DHT_Decoder.py` | 1 digital | DHT11 / DHT22 (AM2302) humidity and temperature frames. |
 | `WS2812_Decoder.py` | 1 digital | WS2812 / WS2812B / SK6812 pulse-coded RGB pixels. |
-| `Manchester_Decoder.py` | 1 digital | Manchester encoding (Thomas or IEEE convention), configurable bit rate and word size. |
+| `Manchester_Decoder.py` | 1 digital | Manchester encoding (Thomas or IEEE convention). Configurable bit rate and word size. |
 
 **Automotive / industrial**
 
@@ -65,7 +64,7 @@ Each `*_Decoder.py` file in this folder is a self-contained protocol decoder tha
 | `PWM_Decoder.py` | 1 digital | Per-cycle duty (%) and frequency (Hz). |
 | `Quadrature_Decoder.py` | 2-3 digital | A/B encoder with optional Z index. x1/x2/x4 decode modes. |
 
-**Test / scaffolding**
+**Template and helpers**
 
 | File | Purpose |
 | --- | --- |
@@ -73,23 +72,17 @@ Each `*_Decoder.py` file in this folder is a self-contained protocol decoder tha
 | `active_pro.py` | Runtime library that decoders import. Provides `wait_for`, `wait_time`, `append`, and all condition factories. |
 | `test_decoder_digital.py` | Smoke test exercising digital edge / level conditions. |
 | `test_decoder_analog.py` | Smoke test exercising analog threshold / hysteresis conditions. |
-| `test_decoder_mixed.py` | Smoke test combining digital + analog with `all_of` / `any_of` / `not_`. |
+| `test_decoder_mixed.py` | Smoke test combining digital and analog with `all_of` / `any_of` / `not_`. |
 
-## How decoders are loaded
+## Using a decoder
 
-The app keeps a working copy of this folder at:
+The decoders ship with the app, no install needed. Open the decoder picker, choose a protocol, assign its channels, set its parameters, and run a capture. Decoded output appears on the protocol's row beneath the waveform.
 
-```
-<WorkingDirectory>/decoders/
-```
+## Writing your own
 
-On every startup the app reconciles the bundled files in `resources/python/` (this folder) against the user's `decoders/` folder using a manifest. New files ship through automatically. Files the user has edited locally are left alone unless the bundled version moves forward, in which case the user is prompted.
+Copy `decoder_template.py`, rename it to `MyProtocol_Decoder.py`, drop it in your decoders folder, and hit Reload in the picker. The template doubles as the API reference: every parameter type and every condition factory is documented inline.
 
-To add a decoder you wrote: drop the `.py` into `<WorkingDirectory>/decoders/`, hit Reload in the decoder picker, pick it from the list.
-
-## Writing a decoder
-
-Start from `decoder_template.py`, which doubles as the API reference. The shape of a decoder is:
+The shape of a decoder:
 
 ```python
 # DECODER_MYNAME = "My Protocol"
@@ -120,21 +113,19 @@ def decode(params):
 Key concepts:
 
 - **One notion of time.** Two and only two ways to advance it: `yield from wait_for(cond)` and `yield from wait_time(seconds)`. Both return a `Moment` snapshot (`m.t`, `m.d[0..7]`, `m.bits`, `m.a[0..7]`) or `None` at end-of-capture.
-- **Composable conditions.** Edge / level factories for both digital and analog, combined with `all_of`, `any_of`, `not_`. Analog conditions take optional hysteresis for Schmitt-style debouncing.
+- **Composable conditions.** Edge and level factories for both digital and analog, combined with `all_of`, `any_of`, `not_`. Analog conditions take optional hysteresis for Schmitt-style debouncing.
 - **Output via `append`.** Each decoder slot owns 8 output rows (channels 0,7). `sample_type` markers (`SAMPLE_PACKET_START` / `SAMPLE_PACKET_END`) let PacketPresenter scripts group bytes into frames downstream.
 - **Parameters.** Each `PARAM:` comment becomes a UI control in the decoder picker. Values arrive in `params` as strings; cast at the top of `decode()`.
-
-The full API surface plus every PARAM type lives at the top of `decoder_template.py`.
 
 ## Contributing
 
 Pull requests for new protocol decoders or fixes to existing ones are welcome. A good decoder PR:
 
-1. Lives in a single `<Protocol>_Decoder.py` file in this directory.
+1. Lives in a single `<Protocol>_Decoder.py` file.
 2. Starts with a `DECODER_MYNAME` line plus a one-sentence description.
-3. Declares every input channel via `PARAM: ... | digital_channel |` or `analog_channel`, so the app can auto-enable the right channels and detect collisions.
-4. Documents its output rows in the header comment (channel 0 does X, channel 1 does Y, etc).
-5. Handles `m is None` after every wait. Decoders that ignore end-of-capture will hang the decoder thread.
+3. Declares every input channel via `PARAM: ... | digital_channel |` or `analog_channel`, so the app can auto-enable the right channels and warn on collisions.
+4. Documents its output rows in the header comment (channel 0 does X, channel 1 does Y, and so on).
+5. Handles `m is None` after every wait. Decoders that ignore end-of-capture will hang.
 6. Avoids busy loops: if you find yourself polling, you almost certainly want `wait_for(...)` with a compound condition instead.
 
 ## License
