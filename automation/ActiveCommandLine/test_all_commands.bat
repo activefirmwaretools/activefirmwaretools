@@ -1,5 +1,28 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
+
+REM ==================================================================
+REM  ACTIVE-PRO Automation API - FULL command test
+REM
+REM  Exercises every command handled by myserver.cpp (the ground-truth
+REM  command parser).  Commands are ordered so each one's preconditions
+REM  are satisfied:
+REM
+REM    1. Capture is STOPPED before SelectDevice and before any
+REM       reconfiguration.  SelectDevice resets all settings, and channel
+REM       / device / trigger / buffer settings only take effect at the
+REM       next capture, so they MUST be issued while stopped.
+REM    2. Triggers, buffer envelope, channels, outputs, labels, notes
+REM       are all configured before the capture starts.
+REM    3. A capture runs so the live readers (GetLogic, GetCHx,
+REM       GetCaptureSize/Time) have real data.
+REM    4. Post-capture work (cursors, zoom, search, trigger navigation,
+REM       ApplyChanges, file save/export) runs against the captured data.
+REM
+REM  A real ACTIVE pod must be attached.  With only the demo device,
+REM  StartCapture returns NOACTIVEDEVICE and the live-read section is
+REM  meaningless (everything else still responds).
+REM ==================================================================
 
 set OUTDIR=%TEMP%\ActiveAPITest
 mkdir "%OUTDIR%" 2>nul
@@ -12,19 +35,33 @@ echo ============================================================
 
 
 echo.
-echo --- CONNECTION AND STATUS ----------------------------------
+echo --- 1. CONNECTION AND BASELINE (force STOPPED state) -------
 
 echo Hello:
 echo   ^> Hello
 activeapicommandline "Hello"
 
+echo StopCapture (defensive - guarantees we start stopped):
+echo   ^> StopCapture
+activeapicommandline "StopCapture"
+
+echo isCapturing (should be NO):
+echo   ^> isCapturing
+activeapicommandline "isCapturing"
+
 echo isConnected:
 echo   ^> isConnected
 activeapicommandline "isConnected"
 
-echo isCapturing:
-echo   ^> isCapturing
-activeapicommandline "isCapturing"
+echo IsProcessing (should be No):
+echo   ^> IsProcessing
+activeapicommandline "IsProcessing"
+
+
+echo.
+echo --- 2. DEVICE DISCOVERY / SELECTION (stopped) --------------
+echo NOTE: SelectDevice resets ALL settings, so it runs FIRST,
+echo       before any configuration below.
 
 echo GetDevicesAttached:
 echo   ^> GetDevicesAttached
@@ -36,596 +73,375 @@ activeapicommandline "SelectDevice 1"
 
 
 echo.
-echo --- LIVE SIGNAL READING (requires active capture) ----------
-echo NOTE: GetLogic and GetCH1-CH6 are read during the capture below
+echo --- 3. CAPTURE BUFFER / PRE-TRIGGER / POST-TRIGGER ---------
+echo (configuration only - takes effect at next capture)
+
+echo SetBufferSize 50:
+echo   ^> SetBufferSize 50
+activeapicommandline "SetBufferSize 50"
+
+echo GetBufferSize:
+echo   ^> GetBufferSize
+activeapicommandline "GetBufferSize"
+
+echo SetPreTriggerMode KEEPLAST:
+echo   ^> SetPreTriggerMode KEEPLAST
+activeapicommandline "SetPreTriggerMode KEEPLAST"
+
+echo SetPreTriggerSeconds 5:
+echo   ^> SetPreTriggerSeconds 5
+activeapicommandline "SetPreTriggerSeconds 5"
+
+echo GetPreTriggerSeconds:
+echo   ^> GetPreTriggerSeconds
+activeapicommandline "GetPreTriggerSeconds"
+
+echo SetPreTriggerMode KEEPALL (restore - clean manual capture):
+echo   ^> SetPreTriggerMode KEEPALL
+activeapicommandline "SetPreTriggerMode KEEPALL"
+
+echo GetPreTriggerMode:
+echo   ^> GetPreTriggerMode
+activeapicommandline "GetPreTriggerMode"
+
+echo SetPostTriggerSeconds 10 (promotes mode to STOPAFTERSECONDS):
+echo   ^> SetPostTriggerSeconds 10
+activeapicommandline "SetPostTriggerSeconds 10"
+
+echo GetPostTriggerSeconds:
+echo   ^> GetPostTriggerSeconds
+activeapicommandline "GetPostTriggerSeconds"
+
+echo SetPostTriggerTriggers 100 (promotes mode to STOPAFTERTRIGGERS):
+echo   ^> SetPostTriggerTriggers 100
+activeapicommandline "SetPostTriggerTriggers 100"
+
+echo GetPostTriggerTriggers:
+echo   ^> GetPostTriggerTriggers
+activeapicommandline "GetPostTriggerTriggers"
+
+echo SetPostTriggerMode UNTILFULL (restore - clean manual capture):
+echo   ^> SetPostTriggerMode UNTILFULL
+activeapicommandline "SetPostTriggerMode UNTILFULL"
+
+echo GetPostTriggerMode:
+echo   ^> GetPostTriggerMode
+activeapicommandline "GetPostTriggerMode"
 
 
 echo.
-echo --- DIGITAL OUTPUT CONTROL ---------------------------------
+echo --- 4. LOGIC CHANNEL ENABLE / DISABLE (stopped) -----------
 
-echo SetD0Mode 0 (tri-state):
-echo   ^> SetD0Mode 0
-activeapicommandline "SetD0Mode 0"
+echo LogicCH0On..LogicCH7On:
+for %%C in (0 1 2 3 4 5 6 7) do (
+   echo   ^> LogicCH%%COn
+   activeapicommandline "LogicCH%%COn"
+)
 
-echo SetD0Mode 1 (low):
-echo   ^> SetD0Mode 1
-activeapicommandline "SetD0Mode 1"
-
-echo SetD0Mode 2 (high):
-echo   ^> SetD0Mode 2
-activeapicommandline "SetD0Mode 2"
-
-echo SetD0Mode 3 (PWM):
-echo   ^> SetD0Mode 3
-activeapicommandline "SetD0Mode 3"
-
-echo SetD0PWM 128:
-echo   ^> SetD0PWM 128
-activeapicommandline "SetD0PWM 128"
-
-echo SetD1Mode 0 (tri-state):
-echo   ^> SetD1Mode 0
-activeapicommandline "SetD1Mode 0"
-
-echo SetD1Mode 1 (low):
-echo   ^> SetD1Mode 1
-activeapicommandline "SetD1Mode 1"
-
-echo SetD1Mode 2 (high):
-echo   ^> SetD1Mode 2
-activeapicommandline "SetD1Mode 2"
-
-echo SetD1Mode 3 (PWM):
-echo   ^> SetD1Mode 3
-activeapicommandline "SetD1Mode 3"
-
-echo SetD1PWM 64:
-echo   ^> SetD1PWM 64
-activeapicommandline "SetD1PWM 64"
+echo LogicCH6Off / LogicCH7Off (then restore):
+echo   ^> LogicCH6Off
+activeapicommandline "LogicCH6Off"
+echo   ^> LogicCH7Off
+activeapicommandline "LogicCH7Off"
+echo   ^> LogicCH6On
+activeapicommandline "LogicCH6On"
+echo   ^> LogicCH7On
+activeapicommandline "LogicCH7On"
 
 
 echo.
-echo --- ANALOG OUTPUT CONTROL ----------------------------------
+echo --- 5. ANALOG CHANNEL ENABLE / DISABLE (stopped) ----------
+echo NOTE: CH5-CH8 enable on ACTIVE-PRO Ultra only; on PRO they
+echo       still return OK but have no hardware channel.
 
-echo SetA0Mode 0 (tri-state):
-echo   ^> SetA0Mode 0
-activeapicommandline "SetA0Mode 0"
+echo AnalogCH1On..AnalogCH8On:
+for %%C in (1 2 3 4 5 6 7 8) do (
+   echo   ^> AnalogCH%%COn
+   activeapicommandline "AnalogCH%%COn"
+)
 
-echo SetA0Mode 1 (0V):
-echo   ^> SetA0Mode 1
-activeapicommandline "SetA0Mode 1"
-
-echo SetA0Mode 2 (1V):
-echo   ^> SetA0Mode 2
-activeapicommandline "SetA0Mode 2"
-
-echo SetA0Mode 3 (2V):
-echo   ^> SetA0Mode 3
-activeapicommandline "SetA0Mode 3"
-
-echo SetA0Mode 4 (3V):
-echo   ^> SetA0Mode 4
-activeapicommandline "SetA0Mode 4"
-
-echo SetA0Mode 5 (4V):
-echo   ^> SetA0Mode 5
-activeapicommandline "SetA0Mode 5"
-
-echo SetA0Mode 6 (custom DC):
-echo   ^> SetA0Mode 6
-activeapicommandline "SetA0Mode 6"
-
-echo SetA0DCLevel 1.75:
-echo   ^> SetA0DCLevel 1.75
-activeapicommandline "SetA0DCLevel 1.75"
-
-echo SetA1Mode 0 (tri-state):
-echo   ^> SetA1Mode 0
-activeapicommandline "SetA1Mode 0"
-
-echo SetA1Mode 1 (0V):
-echo   ^> SetA1Mode 1
-activeapicommandline "SetA1Mode 1"
-
-echo SetA1Mode 2 (1V):
-echo   ^> SetA1Mode 2
-activeapicommandline "SetA1Mode 2"
-
-echo SetA1Mode 3 (2V):
-echo   ^> SetA1Mode 3
-activeapicommandline "SetA1Mode 3"
-
-echo SetA1Mode 4 (3V):
-echo   ^> SetA1Mode 4
-activeapicommandline "SetA1Mode 4"
-
-echo SetA1Mode 5 (4V):
-echo   ^> SetA1Mode 5
-activeapicommandline "SetA1Mode 5"
-
-echo SetA1Mode 6 (custom DC):
-echo   ^> SetA1Mode 6
-activeapicommandline "SetA1Mode 6"
-
-echo SetA1DCLevel 2.5:
-echo   ^> SetA1DCLevel 2.5
-activeapicommandline "SetA1DCLevel 2.5"
-
-echo SetA1Mode 7 (ramp):
-echo   ^> SetA1Mode 7
-activeapicommandline "SetA1Mode 7"
-
-echo SetA1Mode 8 (sine):
-echo   ^> SetA1Mode 8
-activeapicommandline "SetA1Mode 8"
-
-echo SetA1Mode 9 (square):
-echo   ^> SetA1Mode 9
-activeapicommandline "SetA1Mode 9"
-
-echo SetA1Mode 10 (triangle):
-echo   ^> SetA1Mode 10
-activeapicommandline "SetA1Mode 10"
-
-echo SetA1Minimum 0.0:
-echo   ^> SetA1Minimum 0.0
-activeapicommandline "SetA1Minimum 0.0"
-
-echo SetA1Maximum 3.3:
-echo   ^> SetA1Maximum 3.3
-activeapicommandline "SetA1Maximum 3.3"
-
-echo SetA1Steps 50:
-echo   ^> SetA1Steps 50
-activeapicommandline "SetA1Steps 50"
+echo AnalogCH3Off / AnalogCH4Off (then restore):
+echo   ^> AnalogCH3Off
+activeapicommandline "AnalogCH3Off"
+echo   ^> AnalogCH4Off
+activeapicommandline "AnalogCH4Off"
+echo   ^> AnalogCH3On
+activeapicommandline "AnalogCH3On"
+echo   ^> AnalogCH4On
+activeapicommandline "AnalogCH4On"
 
 
 echo.
-echo --- INPUT CHANNEL SETTINGS ---------------------------------
+echo --- 6. DIGITAL THRESHOLD LEVEL (stopped) -------------------
 
-echo ThresholdLevel 1.0:
-echo   ^> ThresholdLevel 1.0
-activeapicommandline "ThresholdLevel 1.0"
-
-echo ThresholdLevel 1.8:
-echo   ^> ThresholdLevel 1.8
-activeapicommandline "ThresholdLevel 1.8"
-
-echo ThresholdLevel 2.5:
-echo   ^> ThresholdLevel 2.5
-activeapicommandline "ThresholdLevel 2.5"
-
-echo ThresholdLevel 3.3:
-echo   ^> ThresholdLevel 3.3
-activeapicommandline "ThresholdLevel 3.3"
-
-echo ThresholdLevel 5.0:
-echo   ^> ThresholdLevel 5.0
-activeapicommandline "ThresholdLevel 5.0"
-
+for %%V in (1.0 1.8 2.5 3.3 5.0) do (
+   echo   ^> ThresholdLevel %%V
+   activeapicommandline "ThresholdLevel %%V"
+)
 echo ThresholdLevel 3.3 (restore default):
 echo   ^> ThresholdLevel 3.3
 activeapicommandline "ThresholdLevel 3.3"
 
 
 echo.
-echo --- DEVICE MODE --------------------------------------------
+echo --- 7. DEVICE DECODER MODES + SETTINGS (stopped) ----------
+echo NOTE: DeviceXMode resets that device's label and setting to the
+echo       protocol default, so set mode BEFORE setting the baud rate.
+echo       SPI/LIN/RS232 modes are A/C-only; using them on B/D returns
+echo       ERROR INVALIDMODE.  Devices are left enabled so the trigger
+echo       text/values channel lists are populated below.
 
-echo DeviceAMode 0 (OFF):
-echo   ^> DeviceAMode 0
-activeapicommandline "DeviceAMode 0"
-
-echo DeviceAMode 1 (ACTIVE 2-Wire):
+echo Device A = ACTIVE 2-Wire (mode 1):
 echo   ^> DeviceAMode 1
 activeapicommandline "DeviceAMode 1"
 
-echo DeviceAMode 6 (UART 8,N,1):
+echo Device A label + (demonstrate UART baud, then back to ADP):
 echo   ^> DeviceAMode 6
 activeapicommandline "DeviceAMode 6"
-
-echo DeviceASetting 115200:
 echo   ^> DeviceASetting 115200
 activeapicommandline "DeviceASetting 115200"
+echo   ^> DeviceAMode 1
+activeapicommandline "DeviceAMode 1"
 
-echo DeviceAMode 7 (UART Inverted):
-echo   ^> DeviceAMode 7
-activeapicommandline "DeviceAMode 7"
-
-echo DeviceASetting 9600:
-echo   ^> DeviceASetting 9600
-activeapicommandline "DeviceASetting 9600"
-
-echo DeviceAMode 3 (I2C):
-echo   ^> DeviceAMode 3
-activeapicommandline "DeviceAMode 3"
-
-echo DeviceAMode 8 (SPI SS-low SCK-rising):
-echo   ^> DeviceAMode 8
-activeapicommandline "DeviceAMode 8"
-
-echo DeviceAMode 14 (1-Wire):
-echo   ^> DeviceAMode 14
-activeapicommandline "DeviceAMode 14"
-
-echo DeviceAMode 16 (LIN):
-echo   ^> DeviceAMode 16
-activeapicommandline "DeviceAMode 16"
-
-echo DeviceASetting 20000:
-echo   ^> DeviceASetting 20000
-activeapicommandline "DeviceASetting 20000"
-
-echo DeviceAMode 32 (RS232):
-echo   ^> DeviceAMode 32
-activeapicommandline "DeviceAMode 32"
-
-echo DeviceASetting 9600:
-echo   ^> DeviceASetting 9600
-activeapicommandline "DeviceASetting 9600"
-
-echo DeviceAMode 34 (MDIO):
-echo   ^> DeviceAMode 34
-activeapicommandline "DeviceAMode 34"
-
-echo DeviceAMode 35 (UART 9,N,1):
-echo   ^> DeviceAMode 35
-activeapicommandline "DeviceAMode 35"
-
-echo DeviceASetting 9600:
-echo   ^> DeviceASetting 9600
-activeapicommandline "DeviceASetting 9600"
-
-echo DeviceAMode 37 (ACTIVE SWV):
-echo   ^> DeviceAMode 37
-activeapicommandline "DeviceAMode 37"
-
-echo DeviceASetting 115200:
-echo   ^> DeviceASetting 115200
-activeapicommandline "DeviceASetting 115200"
-
-echo DeviceBMode 6 (UART 8,N,1):
+echo Device B = UART 8,N,1 (mode 6) @ 9600:
 echo   ^> DeviceBMode 6
 activeapicommandline "DeviceBMode 6"
-
-echo DeviceBSetting 9600:
 echo   ^> DeviceBSetting 9600
 activeapicommandline "DeviceBSetting 9600"
 
-echo DeviceCMode 8 (SPI SS-low SCK-rising):
+echo Device C = SPI SS-low SCK-rising (mode 8, A/C only):
 echo   ^> DeviceCMode 8
 activeapicommandline "DeviceCMode 8"
 
-echo DeviceDMode 3 (I2C):
+echo Device D = I2C (mode 3):
 echo   ^> DeviceDMode 3
 activeapicommandline "DeviceDMode 3"
 
-echo DeviceAMode 0 (restore OFF):
-echo   ^> DeviceAMode 0
-activeapicommandline "DeviceAMode 0"
-
-echo DeviceBMode 0 (restore OFF):
-echo   ^> DeviceBMode 0
-activeapicommandline "DeviceBMode 0"
-
-echo DeviceCMode 0 (restore OFF):
-echo   ^> DeviceCMode 0
-activeapicommandline "DeviceCMode 0"
-
-echo DeviceDMode 0 (restore OFF):
-echo   ^> DeviceDMode 0
-activeapicommandline "DeviceDMode 0"
-
 
 echo.
-echo --- LOGIC CHANNEL ENABLE / DISABLE -------------------------
+echo --- 8. CHANNEL / DEVICE LABELS (stopped) ------------------
 
-echo LogicCH0On:
-echo   ^> LogicCH0On
-activeapicommandline "LogicCH0On"
+echo LogicCH0Label..LogicCH7Label:
+for %%C in (0 1 2 3 4 5 6 7) do (
+   echo   ^> LogicCH%%CLabel D%%C Signal
+   activeapicommandline "LogicCH%%CLabel D%%C Signal"
+)
 
-echo LogicCH1On:
-echo   ^> LogicCH1On
-activeapicommandline "LogicCH1On"
+echo AnalogCH1Label..AnalogCH8Label:
+for %%C in (1 2 3 4 5 6 7 8) do (
+   echo   ^> AnalogCH%%CLabel CH%%C Voltage
+   activeapicommandline "AnalogCH%%CLabel CH%%C Voltage"
+)
 
-echo LogicCH2On:
-echo   ^> LogicCH2On
-activeapicommandline "LogicCH2On"
-
-echo LogicCH3On:
-echo   ^> LogicCH3On
-activeapicommandline "LogicCH3On"
-
-echo LogicCH4On:
-echo   ^> LogicCH4On
-activeapicommandline "LogicCH4On"
-
-echo LogicCH5On:
-echo   ^> LogicCH5On
-activeapicommandline "LogicCH5On"
-
-echo LogicCH6On:
-echo   ^> LogicCH6On
-activeapicommandline "LogicCH6On"
-
-echo LogicCH7On:
-echo   ^> LogicCH7On
-activeapicommandline "LogicCH7On"
-
-echo LogicCH0Off:
-echo   ^> LogicCH0Off
-activeapicommandline "LogicCH0Off"
-
-echo LogicCH1Off:
-echo   ^> LogicCH1Off
-activeapicommandline "LogicCH1Off"
-
-echo LogicCH0On (restore):
-echo   ^> LogicCH0On
-activeapicommandline "LogicCH0On"
-
-echo LogicCH1On (restore):
-echo   ^> LogicCH1On
-activeapicommandline "LogicCH1On"
-
-
-echo.
-echo --- ANALOG CHANNEL ENABLE / DISABLE ------------------------
-
-echo AnalogCH1On:
-echo   ^> AnalogCH1On
-activeapicommandline "AnalogCH1On"
-
-echo AnalogCH2On:
-echo   ^> AnalogCH2On
-activeapicommandline "AnalogCH2On"
-
-echo AnalogCH3On:
-echo   ^> AnalogCH3On
-activeapicommandline "AnalogCH3On"
-
-echo AnalogCH4On:
-echo   ^> AnalogCH4On
-activeapicommandline "AnalogCH4On"
-
-echo AnalogCH5On (Ultra only):
-echo   ^> AnalogCH5On
-activeapicommandline "AnalogCH5On"
-
-echo AnalogCH6On (Ultra only):
-echo   ^> AnalogCH6On
-activeapicommandline "AnalogCH6On"
-
-echo AnalogCH7On (Ultra only):
-echo   ^> AnalogCH7On
-activeapicommandline "AnalogCH7On"
-
-echo AnalogCH8On (Ultra only):
-echo   ^> AnalogCH8On
-activeapicommandline "AnalogCH8On"
-
-echo AnalogCH2Off:
-echo   ^> AnalogCH2Off
-activeapicommandline "AnalogCH2Off"
-
-echo AnalogCH3Off:
-echo   ^> AnalogCH3Off
-activeapicommandline "AnalogCH3Off"
-
-echo AnalogCH2On (restore):
-echo   ^> AnalogCH2On
-activeapicommandline "AnalogCH2On"
-
-echo AnalogCH3On (restore):
-echo   ^> AnalogCH3On
-activeapicommandline "AnalogCH3On"
-
-
-echo.
-echo --- CHANNEL LABELS -----------------------------------------
-
-echo LogicCH0Label:
-echo   ^> LogicCH0Label D0 Signal
-activeapicommandline "LogicCH0Label D0 Signal"
-
-echo LogicCH1Label:
-echo   ^> LogicCH1Label D1 Signal
-activeapicommandline "LogicCH1Label D1 Signal"
-
-echo LogicCH2Label:
-echo   ^> LogicCH2Label D2 Signal
-activeapicommandline "LogicCH2Label D2 Signal"
-
-echo LogicCH3Label:
-echo   ^> LogicCH3Label D3 Signal
-activeapicommandline "LogicCH3Label D3 Signal"
-
-echo LogicCH4Label:
-echo   ^> LogicCH4Label D4 Signal
-activeapicommandline "LogicCH4Label D4 Signal"
-
-echo LogicCH5Label:
-echo   ^> LogicCH5Label D5 Signal
-activeapicommandline "LogicCH5Label D5 Signal"
-
-echo LogicCH6Label:
-echo   ^> LogicCH6Label D6 Signal
-activeapicommandline "LogicCH6Label D6 Signal"
-
-echo LogicCH7Label:
-echo   ^> LogicCH7Label D7 Signal
-activeapicommandline "LogicCH7Label D7 Signal"
-
-echo AnalogCH1Label:
-echo   ^> AnalogCH1Label CH1 Voltage
-activeapicommandline "AnalogCH1Label CH1 Voltage"
-
-echo AnalogCH2Label:
-echo   ^> AnalogCH2Label CH2 Voltage
-activeapicommandline "AnalogCH2Label CH2 Voltage"
-
-echo AnalogCH3Label:
-echo   ^> AnalogCH3Label CH3 Voltage
-activeapicommandline "AnalogCH3Label CH3 Voltage"
-
-echo AnalogCH4Label:
-echo   ^> AnalogCH4Label CH4 Voltage
-activeapicommandline "AnalogCH4Label CH4 Voltage"
-
-echo AnalogCH5Label (Ultra only):
-echo   ^> AnalogCH5Label CH5 Voltage
-activeapicommandline "AnalogCH5Label CH5 Voltage"
-
-echo AnalogCH6Label (Ultra only):
-echo   ^> AnalogCH6Label CH6 Voltage
-activeapicommandline "AnalogCH6Label CH6 Voltage"
-
-echo AnalogCH7Label (Ultra only):
-echo   ^> AnalogCH7Label CH7 Voltage
-activeapicommandline "AnalogCH7Label CH7 Voltage"
-
-echo AnalogCH8Label (Ultra only):
-echo   ^> AnalogCH8Label CH8 Voltage
-activeapicommandline "AnalogCH8Label CH8 Voltage"
-
-echo DeviceALabel:
+echo DeviceALabel..DeviceDLabel:
 echo   ^> DeviceALabel Device A Port
 activeapicommandline "DeviceALabel Device A Port"
-
-echo DeviceBLabel:
 echo   ^> DeviceBLabel Device B Port
 activeapicommandline "DeviceBLabel Device B Port"
-
-echo DeviceCLabel:
 echo   ^> DeviceCLabel Device C Port
 activeapicommandline "DeviceCLabel Device C Port"
-
-echo DeviceDLabel:
 echo   ^> DeviceDLabel Device D Port
 activeapicommandline "DeviceDLabel Device D Port"
 
 
 echo.
-echo --- NOTES --------------------------------------------------
+echo --- 9. DIGITAL OUTPUT CONTROL -----------------------------
+
+echo SetD0Mode 0..3 (tri-state / low / high / PWM):
+for %%M in (0 1 2 3) do (
+   echo   ^> SetD0Mode %%M
+   activeapicommandline "SetD0Mode %%M"
+)
+echo SetD0PWM 128:
+echo   ^> SetD0PWM 128
+activeapicommandline "SetD0PWM 128"
+
+echo SetD1Mode 0..3:
+for %%M in (0 1 2 3) do (
+   echo   ^> SetD1Mode %%M
+   activeapicommandline "SetD1Mode %%M"
+)
+echo SetD1PWM 64:
+echo   ^> SetD1PWM 64
+activeapicommandline "SetD1PWM 64"
+
+
+echo.
+echo --- 10. ANALOG OUTPUT CONTROL -----------------------------
+
+echo SetA0Mode 0..6 (tri-state / 0V / 1V / 2V / 3V / 4V / custom DC):
+for %%M in (0 1 2 3 4 5 6) do (
+   echo   ^> SetA0Mode %%M
+   activeapicommandline "SetA0Mode %%M"
+)
+echo SetA0DCLevel 1.75:
+echo   ^> SetA0DCLevel 1.75
+activeapicommandline "SetA0DCLevel 1.75"
+
+echo SetA1Mode 0..10 (incl. ramp / sine / square / triangle):
+for %%M in (0 1 2 3 4 5 6 7 8 9 10) do (
+   echo   ^> SetA1Mode %%M
+   activeapicommandline "SetA1Mode %%M"
+)
+echo SetA1DCLevel 2.5:
+echo   ^> SetA1DCLevel 2.5
+activeapicommandline "SetA1DCLevel 2.5"
+echo SetA1Minimum 0.0:
+echo   ^> SetA1Minimum 0.0
+activeapicommandline "SetA1Minimum 0.0"
+echo SetA1Maximum 3.3:
+echo   ^> SetA1Maximum 3.3
+activeapicommandline "SetA1Maximum 3.3"
+echo SetA1Steps 50:
+echo   ^> SetA1Steps 50
+activeapicommandline "SetA1Steps 50"
+
+
+echo.
+echo --- 11. NOTES ---------------------------------------------
 
 echo ClearNote:
 echo   ^> ClearNote
 activeapicommandline "ClearNote"
-
 echo AppendNote (line 1):
 echo   ^> AppendNote API test run started
 activeapicommandline "AppendNote API test run started"
-
 echo AppendNote (line 2):
 echo   ^> AppendNote Second note line
 activeapicommandline "AppendNote Second note line"
-
 echo GetNote:
 echo   ^> GetNote
 activeapicommandline "GetNote"
 
 
 echo.
-echo --- ANALYSIS CONTEXT ---------------------------------------
+echo --- 12. AI SNAPSHOT ANALYSIS CONTEXT ----------------------
 
 echo ClearAnalysisContext:
 echo   ^> ClearAnalysisContext
 activeapicommandline "ClearAnalysisContext"
-
 echo AppendAnalysisContext (line 1):
 echo   ^> AppendAnalysisContext Testing all API commands
 activeapicommandline "AppendAnalysisContext Testing all API commands"
-
 echo AppendAnalysisContext (line 2):
 echo   ^> AppendAnalysisContext Second context line
 activeapicommandline "AppendAnalysisContext Second context line"
-
 echo GetAnalysisContext:
 echo   ^> GetAnalysisContext
 activeapicommandline "GetAnalysisContext"
 
 
 echo.
-echo --- TAB VISIBILITY -----------------------------------------
+echo --- 13. TRIGGER CONFIGURATION (stopped, before capture) ---
+echo Source type is a two-stage selector: pick the source TYPE first
+echo (it repopulates the channel + condition combos), then the channel,
+echo then the condition, then any threshold / pulse-width / text param.
 
-echo ShowInputs:
-echo   ^> ShowInputs
-activeapicommandline "ShowInputs"
+echo SetTriggerMode OFF / NORMAL / AUTO:
+for %%M in (OFF NORMAL AUTO) do (
+   echo   ^> SetTriggerMode %%M
+   activeapicommandline "SetTriggerMode %%M"
+)
+echo GetTriggerMode:
+echo   ^> GetTriggerMode
+activeapicommandline "GetTriggerMode"
 
-echo ShowOutputs:
-echo   ^> ShowOutputs
-activeapicommandline "ShowOutputs"
+echo Walk every source type token + read back channel list:
+for %%T in (NONE ANALOG DIGITAL ATEXT AVALUES BTEXT BVALUES CTEXT CVALUES DTEXT DVALUES APPGRAPH BPPGRAPH CPPGRAPH DPPGRAPH) do (
+   echo   ^> SetTriggerSourceType %%T
+   activeapicommandline "SetTriggerSourceType %%T"
+   echo   ^> GetTriggerSourceType
+   activeapicommandline "GetTriggerSourceType"
+   echo   ^> GetTriggerChannelList
+   activeapicommandline "GetTriggerChannelList"
+)
 
-echo ShowList:
-echo   ^> ShowList
-activeapicommandline "ShowList"
+echo ANALOG source: channel 1, RISING, threshold 1.5 V:
+echo   ^> SetTriggerSourceType ANALOG
+activeapicommandline "SetTriggerSourceType ANALOG"
+echo   ^> SetTriggerChannel 1
+activeapicommandline "SetTriggerChannel 1"
+echo   ^> GetTriggerChannel
+activeapicommandline "GetTriggerChannel"
+echo   ^> SetTriggerCondition RISING
+activeapicommandline "SetTriggerCondition RISING"
+echo   ^> SetTriggerThreshold 1.5
+activeapicommandline "SetTriggerThreshold 1.5"
+echo   ^> GetTriggerThreshold
+activeapicommandline "GetTriggerThreshold"
+echo   ^> GetTriggerCondition
+activeapicommandline "GetTriggerCondition"
 
-echo ShowSettings:
-echo   ^> ShowSettings
-activeapicommandline "ShowSettings"
+echo DIGITAL source: channel 1, pulse-high-greater, width 500 us:
+echo   ^> SetTriggerSourceType DIGITAL
+activeapicommandline "SetTriggerSourceType DIGITAL"
+echo   ^> SetTriggerChannel 1
+activeapicommandline "SetTriggerChannel 1"
+echo   ^> SetTriggerCondition PULSEHIGHGREATER
+activeapicommandline "SetTriggerCondition PULSEHIGHGREATER"
+echo   ^> SetTriggerPulseWidth 500 US
+activeapicommandline "SetTriggerPulseWidth 500 US"
+echo   ^> GetTriggerPulseWidth
+activeapicommandline "GetTriggerPulseWidth"
 
-echo ShowNotes:
-echo   ^> ShowNotes
-activeapicommandline "ShowNotes"
+echo ATEXT source: channel 1, CONTAINS, pattern text:
+echo   ^> SetTriggerSourceType ATEXT
+activeapicommandline "SetTriggerSourceType ATEXT"
+echo   ^> SetTriggerChannel 1
+activeapicommandline "SetTriggerChannel 1"
+echo   ^> SetTriggerCondition CONTAINS
+activeapicommandline "SetTriggerCondition CONTAINS"
+echo   ^> SetTriggerText ERROR
+activeapicommandline "SetTriggerText ERROR"
+echo   ^> GetTriggerText
+activeapicommandline "GetTriggerText"
 
-echo ShowCode:
-echo   ^> ShowCode
-activeapicommandline "ShowCode"
+echo AVALUES source: EQUALS, threshold 42:
+echo   ^> SetTriggerSourceType AVALUES
+activeapicommandline "SetTriggerSourceType AVALUES"
+echo   ^> SetTriggerChannel 1
+activeapicommandline "SetTriggerChannel 1"
+echo   ^> SetTriggerCondition EQUALS
+activeapicommandline "SetTriggerCondition EQUALS"
+echo   ^> SetTriggerThreshold 42
+activeapicommandline "SetTriggerThreshold 42"
 
-echo ShowLiveUI:
-echo   ^> ShowLiveUI
-activeapicommandline "ShowLiveUI"
-
-echo ShowDevices:
-echo   ^> ShowDevices
-activeapicommandline "ShowDevices"
-
-echo CloseTabs:
-echo   ^> CloseTabs
-activeapicommandline "CloseTabs"
+echo FINAL trigger config: DIGITAL CH1 RISING, mode NORMAL (so it can fire):
+echo   ^> SetTriggerSourceType DIGITAL
+activeapicommandline "SetTriggerSourceType DIGITAL"
+echo   ^> SetTriggerChannel 1
+activeapicommandline "SetTriggerChannel 1"
+echo   ^> SetTriggerCondition RISING
+activeapicommandline "SetTriggerCondition RISING"
+echo   ^> SetTriggerMode NORMAL
+activeapicommandline "SetTriggerMode NORMAL"
 
 
 echo.
-echo --- WAVEFORM DEVICE VISIBILITY -----------------------------
+echo --- 14. TAB / DEVICE VISIBILITY + DISPLAY -----------------
 
-echo ShowDeviceA:
-echo   ^> ShowDeviceA
-activeapicommandline "ShowDeviceA"
+for %%T in (ShowInputs ShowTriggers ShowOutputs ShowList ShowSettings ShowNotes ShowCode ShowLiveUI ShowDevices CloseTabs) do (
+   echo   ^> %%T
+   activeapicommandline "%%T"
+)
 
-echo HideDeviceA:
-echo   ^> HideDeviceA
-activeapicommandline "HideDeviceA"
+echo Hide then Show each waveform device:
+for %%D in (A B C D) do (
+   echo   ^> HideDevice%%D
+   activeapicommandline "HideDevice%%D"
+   echo   ^> ShowDevice%%D
+   activeapicommandline "ShowDevice%%D"
+)
 
-echo ShowDeviceB:
-echo   ^> ShowDeviceB
-activeapicommandline "ShowDeviceB"
-
-echo HideDeviceB:
-echo   ^> HideDeviceB
-activeapicommandline "HideDeviceB"
-
-echo ShowDeviceC:
-echo   ^> ShowDeviceC
-activeapicommandline "ShowDeviceC"
-
-echo HideDeviceC:
-echo   ^> HideDeviceC
-activeapicommandline "HideDeviceC"
-
-echo ShowDeviceD:
-echo   ^> ShowDeviceD
-activeapicommandline "ShowDeviceD"
-
-echo HideDeviceD:
-echo   ^> HideDeviceD
-activeapicommandline "HideDeviceD"
-
-echo ShowDeviceA (restore):
-echo   ^> ShowDeviceA
-activeapicommandline "ShowDeviceA"
+echo SetDarkMode / SetLightMode:
+echo   ^> SetDarkMode
+activeapicommandline "SetDarkMode"
+echo   ^> SetLightMode
+activeapicommandline "SetLightMode"
 
 
 echo.
-echo --- CAPTURE (3 second capture) -----------------------------
+echo --- 15. CAPTURE RUN (live readers need real data) ---------
 
 echo NewCapture:
 echo   ^> NewCapture
@@ -635,45 +451,22 @@ echo StartCapture:
 echo   ^> StartCapture
 activeapicommandline "StartCapture"
 
-TIMEOUT /T 3 /NOBREAK
-
 echo isCapturing (should be YES):
 echo   ^> isCapturing
 activeapicommandline "isCapturing"
 
-echo GetLogic:
+echo Capturing for 3 seconds...
+TIMEOUT /T 3 /NOBREAK
+
+echo Live reads during capture:
 echo   ^> GetLogic
 activeapicommandline "GetLogic"
-
-echo GetCH1:
-echo   ^> GetCH1
-activeapicommandline "GetCH1"
-
-echo GetCH2:
-echo   ^> GetCH2
-activeapicommandline "GetCH2"
-
-echo GetCH3:
-echo   ^> GetCH3
-activeapicommandline "GetCH3"
-
-echo GetCH4 (Ultra only):
-echo   ^> GetCH4
-activeapicommandline "GetCH4"
-
-echo GetCH5 (Ultra only):
-echo   ^> GetCH5
-activeapicommandline "GetCH5"
-
-echo GetCH6 (Ultra only):
-echo   ^> GetCH6
-activeapicommandline "GetCH6"
-
-echo GetCaptureSize:
+for %%C in (1 2 3 4 5 6) do (
+   echo   ^> GetCH%%C
+   activeapicommandline "GetCH%%C"
+)
 echo   ^> GetCaptureSize
 activeapicommandline "GetCaptureSize"
-
-echo GetCaptureTime:
 echo   ^> GetCaptureTime
 activeapicommandline "GetCaptureTime"
 
@@ -685,37 +478,52 @@ echo isCapturing (should be NO):
 echo   ^> isCapturing
 activeapicommandline "isCapturing"
 
+echo Wait for post-capture processing to finish (poll IsProcessing)...
+call :WAITPROC
+
 
 echo.
-echo --- CURSOR CONTROL -----------------------------------------
+echo --- 16. ANALOG INTROSPECTION (read-only scaling) ----------
+echo (CH1, CH4, CH8 representative of CH1..CH8 pattern)
 
-echo SetCursorCurrent 0.5:
-echo   ^> SetCursorCurrent 0.5
-activeapicommandline "SetCursorCurrent 0.5"
+for %%C in (1 4 8) do (
+   echo   ^> GetCH%%COffset
+   activeapicommandline "GetCH%%COffset"
+   echo   ^> GetCH%%CScale
+   activeapicommandline "GetCH%%CScale"
+   echo   ^> GetCH%%CUnits
+   activeapicommandline "GetCH%%CUnits"
+)
+echo   ^> GetCurrentResistor
+activeapicommandline "GetCurrentResistor"
+echo   ^> GetBatteryCapacity
+activeapicommandline "GetBatteryCapacity"
+echo   ^> GetAnalogRange
+activeapicommandline "GetAnalogRange"
+echo   ^> GetAnalogSampleRate
+activeapicommandline "GetAnalogSampleRate"
 
-echo GetCursorCurrent:
+
+echo.
+echo --- 17. CURSORS / ZOOM / SEARCH (post-capture) ------------
+
+echo SetCursorCurrent 0.0:
+echo   ^> SetCursorCurrent 0.0
+activeapicommandline "SetCursorCurrent 0.0"
 echo   ^> GetCursorCurrent
 activeapicommandline "GetCursorCurrent"
 
 echo SetCursorX1 0.5:
 echo   ^> SetCursorX1 0.5
 activeapicommandline "SetCursorX1 0.5"
-
-echo GetCursorX1:
 echo   ^> GetCursorX1
 activeapicommandline "GetCursorX1"
 
 echo SetCursorX2 2.0:
 echo   ^> SetCursorX2 2.0
 activeapicommandline "SetCursorX2 2.0"
-
-echo GetCursorX2:
 echo   ^> GetCursorX2
 activeapicommandline "GetCursorX2"
-
-
-echo.
-echo --- VIEW AND NAVIGATION ------------------------------------
 
 echo ZoomAll:
 echo   ^> ZoomAll
@@ -725,33 +533,63 @@ echo ZoomFrom 0.0 1.0:
 echo   ^> ZoomFrom 0.0 1.0
 activeapicommandline "ZoomFrom 0.0 1.0"
 
-echo Search ERROR:
+echo Search ERROR (from current cursor; NOTFOUND if no match):
+echo   ^> SetCursorCurrent 0.0
+activeapicommandline "SetCursorCurrent 0.0"
 echo   ^> Search ERROR
 activeapicommandline "Search ERROR"
 
-echo SetCursorCurrent 0.0 (reset for next search):
-echo   ^> SetCursorCurrent 0.0
-activeapicommandline "SetCursorCurrent 0.0"
 
-echo Search BOOT:
-echo   ^> Search BOOT
-activeapicommandline "Search BOOT"
+echo.
+echo --- 18. TRIGGER STATUS / NAVIGATION (post-capture) --------
+echo NOTE: NOTFOUND / 0 are valid responses when no trigger fired.
+
+echo   ^> IsTriggered
+activeapicommandline "IsTriggered"
+echo   ^> GetTriggerCount
+activeapicommandline "GetTriggerCount"
+echo   ^> GetTriggerIndex
+activeapicommandline "GetTriggerIndex"
+echo   ^> GetTriggerCursor
+activeapicommandline "GetTriggerCursor"
+echo   ^> SetTriggerCursor 0.5
+activeapicommandline "SetTriggerCursor 0.5"
+echo   ^> FirstTrigger
+activeapicommandline "FirstTrigger"
+echo   ^> NextTrigger
+activeapicommandline "NextTrigger"
+echo   ^> PrevTrigger
+activeapicommandline "PrevTrigger"
+echo   ^> LastTrigger
+activeapicommandline "LastTrigger"
+echo   ^> GoToTrigger 1
+activeapicommandline "GoToTrigger 1"
+echo   ^> CenterTrigger
+activeapicommandline "CenterTrigger"
+echo   ^> ReprocessTriggers
+activeapicommandline "ReprocessTriggers"
 
 
 echo.
-echo --- DISPLAY ------------------------------------------------
+echo --- 19. APPLY-CHANGES PIPELINE (post-capture, stopped) ----
+echo Make a pending change, confirm not processing, then ApplyChanges.
 
-echo SetDarkMode:
-echo   ^> SetDarkMode
-activeapicommandline "SetDarkMode"
+echo Change a label to create a pending change:
+echo   ^> AnalogCH1Label CH1 Voltage Reading
+activeapicommandline "AnalogCH1Label CH1 Voltage Reading"
 
-echo SetLightMode:
-echo   ^> SetLightMode
-activeapicommandline "SetLightMode"
+echo   ^> IsProcessing
+activeapicommandline "IsProcessing"
+echo   ^> ApplyChanges   (OK, or ERROR NOPENDING if nothing changed)
+activeapicommandline "ApplyChanges"
+call :WAITPROC
+echo   ^> CancelProcessing   (NotRunning when no pipeline is active)
+activeapicommandline "CancelProcessing"
 
 
 echo.
-echo --- FILE OPERATIONS ----------------------------------------
+echo --- 20. FILE OPERATIONS (post-capture, data present) ------
+echo Cursors X1=0.5 X2=2.0 set above bound the between-cursors saves.
 
 echo SaveCapture:
 echo   ^> SaveCapture %OUTDIR%\test.active
@@ -781,19 +619,43 @@ echo SaveScreenshot:
 echo   ^> SaveScreenshot %OUTDIR%\test_screenshot.png
 activeapicommandline "SaveScreenshot %OUTDIR%\test_screenshot.png"
 
-echo OpenConfiguration:
+echo OpenConfiguration (reload what we just saved):
 echo   ^> OpenConfiguration %OUTDIR%\test_config.ini
 activeapicommandline "OpenConfiguration %OUTDIR%\test_config.ini"
 
-echo OpenCapture:
+echo OpenCapture (reload what we just saved):
 echo   ^> OpenCapture %OUTDIR%\test.active
 activeapicommandline "OpenCapture %OUTDIR%\test.active"
 
 
 echo.
 echo ============================================================
-echo  Done.  Check output files in: %OUTDIR%
+echo  All commands sent.  Output files are in: %OUTDIR%
+echo  The only command NOT yet sent is Exit (it closes the app).
 echo ============================================================
 echo.
 
 pause
+
+echo.
+echo Sending Exit - this will CLOSE the ACTIVE-PRO application.
+echo Press Ctrl+C now to skip, or any key to send Exit.
+pause
+echo   ^> Exit
+activeapicommandline "Exit"
+
+goto :EOF
+
+
+REM ------------------------------------------------------------
+REM  WAITPROC - block until the post-capture pipeline is idle.
+REM  IsProcessing returns YES/NO (upper-cased by the server).
+REM ------------------------------------------------------------
+:WAITPROC
+activeapicommandline "IsProcessing" > "%OUTDIR%\_proc.txt"
+type "%OUTDIR%\_proc.txt"
+findstr /I "YES" "%OUTDIR%\_proc.txt" >nul && (
+   TIMEOUT /T 1 /NOBREAK >nul
+   goto WAITPROC
+)
+goto :EOF
