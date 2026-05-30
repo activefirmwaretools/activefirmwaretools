@@ -2,7 +2,7 @@
 
 Python protocol decoders for the **ACTIVE-PRO Debugger** app.
 
-Each `*_Decoder.py` file in this folder is a self-contained protocol decoder. The app discovers it at startup, lists it in the decoder picker, and runs it against captured digital and analog samples. Decoders are plain Python, fully editable, and reloadable: drop a new file in, hit Reload in the picker, see your protocol decoded.
+Each `*_Decoder.py` file in this folder is a self-contained protocol decoder. The app discovers it on startup, lists it in the Custom Python Decoder picker, and runs it against captured digital and analog samples after capture stops. Decoders are plain Python, fully editable. The picker rescans the decoder folder every time it opens, so dropping a new `.py` file in and reopening the picker is enough to see it appear.
 
 ## Bundled decoders
 
