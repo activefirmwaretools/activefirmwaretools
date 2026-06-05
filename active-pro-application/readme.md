@@ -1,4 +1,10 @@
-# Active-Pro Application
+# Active-Pro Application Archive
+
+## All releases are now located in the Releases section of GitHub located here:
+
+## [https://github.com/activefirmwaretools/activefirmwaretools/releases](https://github.com/activefirmwaretools/activefirmwaretools/releases)
+
+Archived older versions are in this directory, but you will want the newest builds available at the above link.
 
 ## Overview
 
