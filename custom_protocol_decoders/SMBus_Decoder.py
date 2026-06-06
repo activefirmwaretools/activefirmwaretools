@@ -69,10 +69,15 @@ def decode(params):
         bytes_seen = []        # all bytes after addr -- last is PEC if used
         first_byte = True
         ended = False
+        pending_bit   = None   # bit 7 already clocked by the between-byte probe
+        pending_bit_t = None
 
         while not ended:
             byte_val, byte_start_t, ack_edge = \
-                yield from _read_byte_with_ack(scl, sda)
+                yield from _read_byte_with_ack(scl, sda, pending_bit,
+                                               pending_bit_t)
+            pending_bit = None
+            pending_bit_t = None
             if byte_val is None:
                 return
             ack_bit = ack_edge.d[sda]
@@ -101,15 +106,34 @@ def decode(params):
                    text=("NAK" if ack_bit else "ACK"),
                    sample_type=SAMPLE_DATA_ALT, data=ack_bit)
 
-            # Look for STOP / repeated START / next byte
+            # ----- Between-byte classification ------------------------------
+            # See I2C_Decoder for the full rationale. STOP / repeated-START are
+            # SDA edges *while SCL is high*; a normal next bit is just an SCL
+            # rising edge with SDA stable. Consume the ACK's SCL fall and the
+            # next SCL rise first, then watch the plateau for an SDA edge
+            # (STOP/RESTART) vs the SCL fall (clean data bit) -- so the clock
+            # edge can't be mistaken for an SDA event.
+            scl_fell = yield from wait_for(falling_edge(scl))
+            if scl_fell is None:
+                return
+            next_rise = yield from wait_for(rising_edge(scl))
+            if next_rise is None:
+                return
+            cand_bit   = next_rise.d[sda]
+            cand_bit_t = next_rise.t
             ev = yield from wait_for(any_of(
-                all_of(rising_edge(sda), high(scl)),    # STOP
-                all_of(falling_edge(sda), high(scl)),   # Repeated START
-                rising_edge(scl),                       # Next byte starts
+                all_of(rising_edge(sda),  high(scl)),   # STOP
+                all_of(falling_edge(sda), high(scl)),   # repeated START
+                falling_edge(scl),                      # clean data bit
             ))
             if ev is None:
                 return
-            if ev.d[scl] == 1 and ev.d[sda] == 1:
+            if ev.d[scl] == 0:
+                # SCL fell with SDA steady -> data bit (bit 7 already sampled).
+                pending_bit   = cand_bit
+                pending_bit_t = cand_bit_t
+                continue
+            if ev.d[sda] == 1:
                 # STOP -- transfer ends.
                 if expect_pec and len(bytes_seen) >= 1:
                     crc = _crc8(0, address_byte)
@@ -128,46 +152,28 @@ def decode(params):
                 append(ev.t, ev.t, CH_ADDR, text="STOP",
                        sample_type=SAMPLE_PACKET_END)
                 ended = True
-            elif ev.d[scl] == 1 and ev.d[sda] == 0:
-                # Repeated START -- new addr byte.
+            else:
+                # SDA fell and SCL held high -> repeated START, new addr byte.
                 append(ev.t, ev.t, CH_ADDR, text="RESTART",
                        sample_type=SAMPLE_DATA)
                 first_byte = True
                 bytes_seen = []
-            else:
-                # SCL rising = next byte starting; treat ev as bit 7 of next.
-                byte_val = ev.d[sda]
-                byte_start_t = ev.t
-                for _ in range(7):
-                    e = yield from wait_for(rising_edge(scl))
-                    if e is None:
-                        return
-                    byte_val = (byte_val << 1) | e.d[sda]
-                ack_edge = yield from wait_for(rising_edge(scl))
-                if ack_edge is None:
-                    return
-                ack_bit = ack_edge.d[sda]
-
-                if len(bytes_seen) == 0 and not first_byte:
-                    append(byte_start_t, ack_edge.t, CH_CMD,
-                           text=f"CMD 0x{byte_val:02X}", data=byte_val,
-                           sample_type=SAMPLE_DATA, color=0xFFFFCC88)
-                else:
-                    append(byte_start_t, ack_edge.t, CH_DATA,
-                           text=f"0x{byte_val:02X}", data=byte_val,
-                           sample_type=SAMPLE_DATA)
-                bytes_seen.append(byte_val)
-                append(ack_edge.t, ack_edge.t, CH_ACK,
-                       text=("NAK" if ack_bit else "ACK"),
-                       sample_type=SAMPLE_DATA_ALT, data=ack_bit)
 
 
-def _read_byte_with_ack(scl, sda):
-    """Read 8 data bits MSB first on SCL rising edges, then the ACK bit.
-    Returns (byte_val, byte_start_t, ack_edge_moment) or (None,None,None)."""
-    byte_val = 0
-    byte_start_t = None
-    for _ in range(8):
+def _read_byte_with_ack(scl, sda, first_bit=None, first_bit_t=None):
+    """Read a byte MSB first on SCL rising edges, then the ACK bit. If
+    first_bit is given it is bit 7 (already sampled at an SCL rising edge by the
+    between-byte probe) and only 7 more bits are clocked. Returns
+    (byte_val, byte_start_t, ack_edge_moment) or (None, None, None)."""
+    if first_bit is None:
+        byte_val = 0
+        byte_start_t = None
+        nbits = 8
+    else:
+        byte_val = first_bit & 1
+        byte_start_t = first_bit_t
+        nbits = 7
+    for _ in range(nbits):
         e = yield from wait_for(rising_edge(scl))
         if e is None:
             return None, None, None

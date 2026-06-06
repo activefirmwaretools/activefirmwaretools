@@ -152,12 +152,22 @@ def decode(params):
         crc = _crc8(0, addr_byte)
         ended = False
 
-        # Try to read the next byte, but check for STOP between bytes.
+        # Read the next byte, or detect STOP / repeated-START between bytes.
         while not ended:
+            # See I2C_Decoder for the rationale: consume the ACK's SCL fall and
+            # the next SCL rise *before* testing SDA-while-high, so a normal
+            # next-bit clock (SCL high, SDA = the bit) can't be misread as a
+            # STOP/RESTART by level.
+            scl_fell = yield from wait_for(falling_edge(scl))
+            if scl_fell is None:
+                return
+            next_rise = yield from wait_for(rising_edge(scl))
+            if next_rise is None:
+                return
             ev = yield from wait_for(any_of(
-                all_of(rising_edge(sda), high(scl)),    # STOP
+                all_of(rising_edge(sda),  high(scl)),   # STOP
                 all_of(falling_edge(sda), high(scl)),   # RESTART
-                rising_edge(scl),                       # bit 7 of next byte
+                falling_edge(scl),                      # clean data bit
             ))
             if ev is None:
                 return
@@ -198,9 +208,9 @@ def decode(params):
                 ended = True
                 break
             else:
-                # SCL rising: ev is bit 7 of next byte
-                byte_val = ev.d[sda]
-                bs = ev.t
+                # Data bit: next_rise clocked bit 7 of the next byte.
+                byte_val = next_rise.d[sda]
+                bs = next_rise.t
                 for _ in range(7):
                     e = yield from wait_for(rising_edge(scl))
                     if e is None:

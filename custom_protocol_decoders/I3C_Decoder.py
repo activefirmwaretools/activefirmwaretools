@@ -591,23 +591,46 @@ def decode(params):
                     sub_byte_idx += 1
 
             # ===============================================================
-            # After the 9th bit, watch for STOP / RESTART / next byte
-            # ===============================================================
+            # After the 9th bit, classify STOP / RESTART / next byte.
+            # STOP and RESTART are SDA edges *while SCL is high*; a normal next
+            # byte is just an SCL rising edge with SDA stable at bit 7. Lumping
+            # the SCL rising edge into the same any_of() as the SDA edges and
+            # disambiguating by level misreads every next byte (bit 7 == 1 ->
+            # false STOP, bit 7 == 0 -> false RESTART; the "next byte" branch is
+            # unreachable). Consume the 9th bit's SCL fall and the next SCL rise
+            # first, then watch the plateau for an SDA edge (STOP/RESTART) vs the
+            # SCL fall (clean data bit) so the clock edge can't be mistaken for
+            # an SDA event. See I2C_Decoder for the full rationale.
+            scl_fell = yield from wait_for(falling_edge(scl))
+            if scl_fell is None:
+                return
+            next_rise = yield from wait_for(rising_edge(scl))
+            if next_rise is None:
+                return
+            cand_d = next_rise.d[sda]    # provisional bit 7 of next byte
+            cand_t = next_rise.t
+
             ev = yield from wait_for(any_of(
                 all_of(rising_edge(sda),  high(scl)),   # STOP
                 all_of(falling_edge(sda), high(scl)),   # Repeated START
-                rising_edge(scl),                       # Next byte begins
+                falling_edge(scl),                      # clean data bit
             ))
             if ev is None:
                 return
 
-            if ev.d[scl] == 1 and ev.d[sda] == 1:
+            if ev.d[scl] == 0:
+                # ----- next byte ------------------------------------------
+                # next_rise clocked bit 7 of the next byte; stash it so the
+                # next iteration picks up from bit 6.
+                pre_consumed = (cand_d, cand_t)
+
+            elif ev.d[sda] == 1:
                 # ----- STOP -----------------------------------------------
                 append(ev.t, ev.t, CH_NOTE,
                        text="STOP", sample_type=SAMPLE_PACKET_END)
                 ended = True
 
-            elif ev.d[scl] == 1 and ev.d[sda] == 0:
+            else:
                 # ----- RESTART --------------------------------------------
                 append(ev.t, ev.t, CH_NOTE, text="RESTART",
                        sample_type=SAMPLE_DATA)
@@ -621,9 +644,3 @@ def decode(params):
                 # last_ccc and bus_is_i3c persist -- a direct CCC's
                 # parameter bytes appear after RESTART, and the bus is
                 # still I3C across sub-transfers.
-
-            else:
-                # ----- SCL rising edge with no STOP/RESTART ---------------
-                # That edge is bit 7 of the next byte. Stash it; the next
-                # iteration will pick it up via _read_byte_first_bit_known.
-                pre_consumed = (ev.d[sda], ev.t)

@@ -32,7 +32,7 @@ return None once the cursor catches up to write_pos, letting decode() exit
 cleanly.
 
 Byte-for-byte layouts are mirrored from the C++ headers:
-  decodercontrolheader.h  -> _ControlHeader  (48 B, version 3)
+  decodercontrolheader.h  -> _ControlHeader  (56 B, version 4)
   annotationring.h        -> _RingHeader (64 B), _RECORD_FMT (160 B)
   logicsamplebuffer.h     -> SampleLogicType  (16 B, native)
   analogsamplebuffer.h    -> AnalogSampleLevel0Type (stride read from
@@ -64,8 +64,8 @@ from typing import Any, Callable, Generator, Optional
 
 # decodercontrolheader.h: AP_CONTROL_HEADER_MAGIC = 'APCH' little-endian.
 _CTRL_MAGIC = 0x48435041
-_CTRL_VERSION = 3
-_CTRL_SIZE = 48
+_CTRL_VERSION = 4
+_CTRL_SIZE = 56
 
 # Field offsets within DecoderControlHeader (little-endian).
 _OFF_CTRL_MAGIC = 0
@@ -77,6 +77,8 @@ _OFF_CTRL_WRITE_POS = 24
 _OFF_CTRL_ANALOG_USED = 32
 _OFF_CTRL_ANALOG_TOTAL = 36
 _OFF_CTRL_STEPS_PER_RECORD = 40
+# reserved0 (u32) at 44
+_OFF_CTRL_CAPTURE_END_TICK = 48     # quint64: absolute final capture timestamp
 
 # annotationring.h: AP_ANNOTATION_RING_MAGIC = 'APAR' little-endian.
 _RING_MAGIC = 0x52415041
@@ -191,7 +193,8 @@ class _ControlHeader:
 
     __slots__ = ("write_pos", "record_size", "is_ultra",
                  "timestamp_frequency", "analog_channels_used",
-                 "analog_channels_total", "steps_per_record")
+                 "analog_channels_total", "steps_per_record",
+                 "capture_end_tick")
 
     def __init__(self, mm: mmap.mmap, base_offset: int):
         magic = _u32(mm, base_offset + _OFF_CTRL_MAGIC)
@@ -211,6 +214,7 @@ class _ControlHeader:
         self.analog_channels_used  = _u32(mm, base_offset + _OFF_CTRL_ANALOG_USED)
         self.analog_channels_total = _u32(mm, base_offset + _OFF_CTRL_ANALOG_TOTAL)
         self.steps_per_record      = _u32(mm, base_offset + _OFF_CTRL_STEPS_PER_RECORD)
+        self.capture_end_tick      = _u64(mm, base_offset + _OFF_CTRL_CAPTURE_END_TICK)
 
 
 # ---------------------------------------------------------------------------
@@ -589,30 +593,83 @@ def append(t_start: float, t_end: float, channel: int,
 #   For analog functions, channel is 0..7 (Pro: 0..3 valid; Ultra: 0..7).
 # ---------------------------------------------------------------------------
 
-# --- Module-level state set by _run() before calling user's decode() -------
+# --- Current-time model ----------------------------------------------------
+#
+# The decoder has exactly one notion of "now": _T, a time in seconds. Signals
+# are sample-and-hold -- the value at _T is the value of the most recent stored
+# sample at or before _T, held until the next stored sample. Captures are
+# transition-compressed: nothing is stored while a signal sits still, so an
+# arbitrary amount of time (and many bit periods) can pass between two adjacent
+# stored samples. Driving off _T instead of a sample index is what lets
+# wait_time() step across those gaps and always read the held level -- exactly
+# like sampling a real bus at fixed intervals.
+#
+# _I and _J are the held cursors: the indices of the most recent logic / analog
+# sample at or before _T. They only ever move forward (time only advances), so a
+# whole decode run stays O(samples). Both wait operations move _T forward and
+# leave _I / _J pointing at the held samples for the new _T.
 
-_LOGIC: Optional[LogicAccessor]   = None
+_LOGIC: Optional[LogicAccessor]     = None
 _ANALOG: Optional["AnalogAccessor"] = None
-_I: int = 0   # logic cursor
-_J: int = 0   # analog cursor
+_T: float = 0.0       # current decoder time, seconds
+_I: int = 0           # held logic sub-sample index  (_LOGIC[_I].t <= _T)
+_J: int = 0           # held analog record index     (_ANALOG[_J].t <= _T)
+_END_T: float = 0.0   # true end of capture, seconds (host capture_end_tick)
 
 
 # --- Internal helpers ------------------------------------------------------
 
-def _sync_analog_to(analog: "AnalogAccessor", j: int, target_t: float) -> int:
-    """Advance j to the first analog sample with t >= target_t."""
-    n = len(analog)
-    while j < n and analog[j].t < target_t:
-        j += 1
-    return j
-
-
-def _sync_logic_to(logic: LogicAccessor, i: int, target_t: float) -> int:
-    """Advance i to the first logic sub-sample with t >= target_t."""
-    n = len(logic)
-    while i < n and logic[i].t < target_t:
+def _hold_logic_to(t: float) -> None:
+    """Advance the held logic cursor _I to the most recent sub-sample at or
+    before t. Never moves backward (time only advances)."""
+    global _I
+    l = _LOGIC
+    if l is None:
+        return
+    n = len(l)
+    if n == 0:
+        return
+    i = _I if _I < n else n - 1
+    while i + 1 < n and l[i + 1].t <= t:
         i += 1
-    return i
+    _I = i
+
+
+def _hold_analog_to(t: float) -> None:
+    """Advance the held analog cursor _J to the most recent record at or
+    before t. Never moves backward."""
+    global _J
+    a = _ANALOG
+    if a is None:
+        return
+    n = len(a)
+    if n == 0:
+        return
+    j = _J if _J < n else n - 1
+    while j + 1 < n and a[j + 1].t <= t:
+        j += 1
+    _J = j
+
+
+def _capture_end_time() -> Optional[float]:
+    """End of the captured time window in seconds, or None if nothing was
+    captured. wait_time() returns None once _T would pass this.
+
+    Logic records are transition-only, so the last stored sample is the last
+    edge -- an idle bus at the end of the capture stores nothing even though the
+    held value remains valid until capture actually stopped. The host reports
+    that true end as capture_end_tick (-> _END_T); we honor it so a decoder can
+    sample the held tail (e.g. a UART stop bit) instead of dropping the final
+    symbol. Guarded so a stale/zero _END_T never truncates below a real sample."""
+    end: Optional[float] = None
+    if _LOGIC is not None and len(_LOGIC):
+        end = _LOGIC[len(_LOGIC) - 1].t
+    if _ANALOG is not None and len(_ANALOG):
+        ta = _ANALOG[len(_ANALOG) - 1].t
+        end = ta if end is None else max(end, ta)
+    if _END_T > 0.0:
+        end = _END_T if end is None else max(end, _END_T)
+    return end
 
 
 class _Cursor:
@@ -675,19 +732,26 @@ class Moment:
         self.a    = a
 
 
-def _moment_from_logic(lsamp: LogicSample, ana_cursor: "_Cursor") -> Moment:
-    asamp = _analog_held_at(lsamp.t, ana_cursor)
-    a_vals = asamp.a if asamp is not None else [0.0] * 8
-    return Moment(lsamp.t, lsamp.d, lsamp.bits, a_vals)
-
-
-def _moment_from_analog(asamp: AnalogSample, log_cursor: "_Cursor") -> Moment:
-    lsamp = _logic_held_at(asamp.t, log_cursor)
-    if lsamp is not None:
-        d, bits = lsamp.d, lsamp.bits
+def _held_moment() -> Moment:
+    """Snapshot of every signal at the current time _T using the held cursors.
+    Logic bits and analog voltages are each the most recent value at or before
+    _T (0 / 0.0 before the first sample of that kind exists)."""
+    if _LOGIC is not None and 0 <= _I < len(_LOGIC):
+        lsamp = _LOGIC[_I]
+        if lsamp.t <= _T:
+            d, bits = lsamp.d, lsamp.bits
+        else:
+            d, bits = (0,) * 8, 0
     else:
         d, bits = (0,) * 8, 0
-    return Moment(asamp.t, d, bits, asamp.a)
+
+    if _ANALOG is not None and 0 <= _J < len(_ANALOG):
+        asamp = _ANALOG[_J]
+        a_vals = asamp.a if asamp.t <= _T else [0.0] * 8
+    else:
+        a_vals = [0.0] * 8
+
+    return Moment(_T, d, bits, a_vals)
 
 
 # --- Conditions ------------------------------------------------------------
@@ -949,50 +1013,56 @@ def wait_for(condition: _Condition,
     """Advance until condition.test() returns True at the current moment.
     Returns a Moment snapshot at the event, or None on end-of-capture/timeout.
 
-    wait_for scans the buffer matching condition.primary ('logic' for digital
-    conditions and combinators containing any digital sub-condition; 'analog'
-    only when all sub-conditions are analog). The other signal's value at
-    that timestamp is supplied to test() via sample-and-hold lookup. Both
-    user-visible cursors advance to the event time on success."""
-    global _I, _J
+    wait_for scans the stored samples of the buffer matching condition.primary
+    ('logic' for digital conditions and any combinator containing a digital
+    sub-condition; 'analog' only when every sub-condition is analog) starting
+    from the current held position. Edges are detected between consecutive
+    stored samples, so the first transition after 'now' is found no matter how
+    far away it sits. The other domain's value at the event time is supplied to
+    test() by sample-and-hold. A level condition that is already true at the
+    current time fires immediately at the current time (not back at the last
+    stored transition). On success _T and both held cursors land on the
+    event."""
+    global _T, _I, _J
     if _LOGIC is None or _ANALOG is None:
         raise RuntimeError("wait_for called outside the decoder run context")
 
-    ana_cursor = _Cursor(); ana_cursor.idx = _J
-    log_cursor = _Cursor(); log_cursor.idx = _I
-    start_t: Optional[float] = None
+    entry_t = _T
 
     if condition.primary == "analog":
-        n = len(_ANALOG)
-        while _J < n:
-            asamp = _ANALOG[_J]
+        log_cursor = _Cursor(); log_cursor.idx = _I
+        a = _ANALOG
+        n = len(a)
+        i = _J
+        while i < n:
+            asamp = a[i]
             lsamp_held = _logic_held_at(asamp.t, log_cursor)
             if condition.test(lsamp_held, asamp):
-                _I = _sync_logic_to(_LOGIC, _I, asamp.t)
-                return _moment_from_analog(asamp, log_cursor)
-            if timeout is not None:
-                if start_t is None:
-                    start_t = asamp.t
-                elif (asamp.t - start_t) >= timeout:
-                    return None
-            _J += 1
-            # Progress is published by the background _publish_progress_periodically
-            # thread reading _I / _J; no inline check needed here.
+                _J = i
+                _T = asamp.t if asamp.t > entry_t else entry_t
+                _hold_logic_to(_T)
+                return _held_moment()
+            if timeout is not None and (asamp.t - entry_t) >= timeout:
+                return None
+            i += 1
+            # Progress is published by the background publisher reading _I / _J.
         return None
     else:
-        n = len(_LOGIC)
-        while _I < n:
-            lsamp = _LOGIC[_I]
+        ana_cursor = _Cursor(); ana_cursor.idx = _J
+        l = _LOGIC
+        n = len(l)
+        i = _I
+        while i < n:
+            lsamp = l[i]
             asamp_held = _analog_held_at(lsamp.t, ana_cursor)
             if condition.test(lsamp, asamp_held):
-                _J = _sync_analog_to(_ANALOG, _J, lsamp.t)
-                return _moment_from_logic(lsamp, ana_cursor)
-            if timeout is not None:
-                if start_t is None:
-                    start_t = lsamp.t
-                elif (lsamp.t - start_t) >= timeout:
-                    return None
-            _I += 1
+                _I = i
+                _T = lsamp.t if lsamp.t > entry_t else entry_t
+                _hold_analog_to(_T)
+                return _held_moment()
+            if timeout is not None and (lsamp.t - entry_t) >= timeout:
+                return None
+            i += 1
         return None
     # Unreachable: marks wait_for as a generator function so `yield from`
     # callers parse correctly.
@@ -1001,27 +1071,31 @@ def wait_for(condition: _Condition,
 
 def wait_time(seconds: float
               ) -> Generator[None, None, Optional[Moment]]:
-    """Advance both cursors by `seconds` of time. Returns a Moment at the
-    new time, or None on end-of-capture."""
-    global _I, _J
+    """Advance the current time by `seconds` and return a Moment with the
+    sample-and-held value at that exact time. Returns None once time runs past
+    the end of the capture.
+
+    This is pure time stepping: it does NOT scan to the next stored transition.
+    Calling wait_time(1.0 / baud) in a loop samples the bus at fixed intervals
+    and reads the held level at each point, so a long run of identical bits
+    (which stores no samples at all) behaves exactly like a busy line -- every
+    step returns whatever level is being held at that instant."""
+    global _T
     if _LOGIC is None or _ANALOG is None:
         raise RuntimeError("wait_time called outside the decoder run context")
 
-    n = len(_LOGIC)
-    if _I >= n:
+    end_t = _capture_end_time()
+    if end_t is None:
         return None
 
-    start_t = _LOGIC[_I].t
-    target_t = start_t + seconds
+    new_t = _T + seconds
+    if new_t > end_t:
+        return None
 
-    while _I < n:
-        lsamp = _LOGIC[_I]
-        if lsamp.t >= target_t:
-            _J = _sync_analog_to(_ANALOG, _J, lsamp.t)
-            ac = _Cursor(); ac.idx = _J
-            return _moment_from_logic(lsamp, ac)
-        _I += 1
-    return None
+    _T = new_t
+    _hold_logic_to(_T)
+    _hold_analog_to(_T)
+    return _held_moment()
     # Unreachable: generator marker.
     yield  # pragma: no cover
 
@@ -1050,14 +1124,18 @@ def wait_for_edge(channel: int, edge: str = 'rising',
 
 # --- Runtime setup (used by _run before calling user's decode) -------------
 
-def _install_context(logic: LogicAccessor, analog: "AnalogAccessor") -> None:
+def _install_context(logic: LogicAccessor, analog: "AnalogAccessor",
+                     end_t: float = 0.0) -> None:
     """Stash buffers as module state so wait_for / wait_time can see them.
-    Resets user-visible cursors to 0."""
-    global _LOGIC, _ANALOG, _I, _J
+    Resets the current time and held cursors to the start of the capture.
+    end_t is the host's true capture-end time in seconds (0.0 if unknown)."""
+    global _LOGIC, _ANALOG, _T, _I, _J, _END_T
     _LOGIC  = logic
     _ANALOG = analog
+    _T      = 0.0
     _I      = 0
     _J      = 0
+    _END_T  = end_t
 
 
 # ---------------------------------------------------------------------------
@@ -1147,8 +1225,12 @@ def _run() -> int:
     print("DBG: user decoder loaded OK", file=sys.stderr, flush=True)
 
     # Step 2b: install the buffers as module state so the user's decode()
-    # can call wait_for() / wait_time() without threading cursors.
-    _install_context(logic, analog)
+    # can call wait_for() / wait_time() without threading cursors. The capture
+    # end (true window length, past the last transition) comes from the control
+    # header so time-stepping decoders can sample the held idle tail.
+    end_t = (logic_ctrl.capture_end_tick / logic_ctrl.timestamp_frequency
+             if logic_ctrl.timestamp_frequency > 0 else 0.0)
+    _install_context(logic, analog, end_t)
 
     # Step 3: hand off to the host -- the C++ side waits for 'ready'
     # before sending 'start'.
